@@ -37,10 +37,10 @@ export default async function ArchivePage({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageHeader
         title="Archive"
-        description="A calm catalog of delivered projects, filtered by year and ready to revisit."
+        description="Completed songs and delivered lyric projects, stored like a clean set of notes."
       />
       <section className="-mx-4 overflow-x-auto px-4">
         <div className="flex gap-3 pb-1">
@@ -55,28 +55,28 @@ export default async function ArchivePage({
           {grouped.map(([year, items]) => (
             <Card key={year}>
               <CardHeader className="pb-3">
-                <h2 className="text-lg font-semibold tracking-tight text-ink">{year}</h2>
+                <h2 className="text-lg font-bold tracking-tight text-ink">{year}</h2>
               </CardHeader>
               <CardContent className="space-y-3">
-                {items.map((project) => (
-                  <div key={project.id} className="rounded-2xl border border-line bg-surface-soft p-4">
+                {items.map((project, index) => (
+                  <div key={project.id} className={`rounded-[24px] p-4 ${getTileColor(index)}`}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="truncate text-base font-semibold tracking-tight text-ink">{project.title}</p>
-                        <p className="mt-1 text-sm text-ink-soft">
+                        <p className="truncate text-base font-bold tracking-tight text-ink">{project.title}</p>
+                        <p className="mt-1 text-sm text-ink/70">
                           {[project.artist, project.client].filter(Boolean).join(" • ") || "Independent project"}
                         </p>
                       </div>
                       <ProjectStatusBadge status={project.overall_status} />
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2 text-sm">
-                      <div className="rounded-full border border-line bg-surface px-3 py-1.5 text-ink-soft">
+                      <div className="rounded-full bg-white/50 px-3 py-1.5 text-ink/70">
                         Submitted {formatDate(project.submitted_at)}
                       </div>
-                      <div className="rounded-full border border-line bg-surface px-3 py-1.5 text-ink-soft">
+                      <div className="rounded-full bg-white/50 px-3 py-1.5 text-ink/70">
                         {project.project_type}
                       </div>
-                      <div className="rounded-full border border-line bg-surface px-3 py-1.5 text-ink-soft">
+                      <div className="rounded-full bg-white/50 px-3 py-1.5 text-ink/70">
                         {project.progress_percent}% complete
                       </div>
                     </div>
@@ -95,4 +95,9 @@ export default async function ArchivePage({
       )}
     </div>
   );
+}
+
+function getTileColor(index: number) {
+  const tones = ["bg-note-purple", "bg-note-blue", "bg-note-yellow", "bg-note-green"] as const;
+  return tones[index % tones.length];
 }

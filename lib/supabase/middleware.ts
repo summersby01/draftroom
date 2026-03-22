@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
 
 export async function updateSession(request: NextRequest, requestHeaders?: Headers) {
+  const pathname = request.nextUrl.pathname;
   let response = NextResponse.next({
     request: {
       headers: requestHeaders ?? request.headers
@@ -31,7 +32,18 @@ export async function updateSession(request: NextRequest, requestHeaders?: Heade
     }
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  const isPublicRoute = pathname === "/login" || pathname.startsWith("/auth/callback");
+
+  if (!user && !isPublicRoute) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.search = "";
+    return NextResponse.redirect(loginUrl);
+  }
 
   return response;
 }

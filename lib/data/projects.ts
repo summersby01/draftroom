@@ -76,7 +76,10 @@ export async function getProjectHistory(projectId: string) {
     .order("created_at", { ascending: false })
     .limit(20);
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingProjectHistoryTableError(error)) return [];
+    throw new Error(error.message);
+  }
   return (data ?? []) as ProjectHistory[];
 }
 
@@ -105,13 +108,17 @@ export async function getDashboardData() {
   if (activeRes.error) throw new Error(activeRes.error.message);
   if (recentRes.error) throw new Error(recentRes.error.message);
   if (submittedRes.error) throw new Error(submittedRes.error.message);
-  if (historyRes.error) throw new Error(historyRes.error.message);
+  if (historyRes.error && !isMissingProjectHistoryTableError(historyRes.error)) {
+    throw new Error(historyRes.error.message);
+  }
   if (allSubmittedRes.error) throw new Error(allSubmittedRes.error.message);
 
   const active = (activeRes.data ?? []) as Project[];
   const recent = (recentRes.data ?? []) as Project[];
   const submittedThisMonth = (submittedRes.data ?? []) as Project[];
-  const history = (historyRes.data ?? []) as ProjectHistory[];
+  const history = isMissingProjectHistoryTableError(historyRes.error)
+    ? []
+    : ((historyRes.data ?? []) as ProjectHistory[]);
   const allSubmitted = (allSubmittedRes.data ?? []) as Project[];
 
   const overdue = active.filter((project) => project.overall_status === "overdue");
@@ -143,6 +150,16 @@ export async function getDashboardData() {
     },
     archiveStats: getArchiveStats(allSubmitted)
   };
+}
+
+function isMissingProjectHistoryTableError(error: { message?: string; code?: string } | null) {
+  if (!error) return false;
+
+  return (
+    error.code === "PGRST205" ||
+    error.message?.includes("public.project_history") === true ||
+    error.message?.includes("schema cache") === true
+  );
 }
 
 export async function getArchiveData(filters: ProjectFilters = {}) {

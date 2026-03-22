@@ -15,10 +15,10 @@ export function PageHeader({
   ctaHref?: Route;
 }) {
   return (
-    <div className="space-y-4 rounded-2xl border border-line bg-surface p-5 shadow-soft">
+    <div className="space-y-3">
       <div>
-        <h1 className="text-[1.75rem] font-semibold tracking-tight text-ink">{title}</h1>
-        <p className="mt-2 text-sm leading-6 text-ink-soft">{description}</p>
+        <h1 className="text-[2rem] font-bold tracking-tight text-ink">{title}</h1>
+        <p className="mt-1 text-sm leading-6 text-ink-soft">{description}</p>
       </div>
       {ctaLabel && ctaHref ? (
         <Button asChild className="w-full">

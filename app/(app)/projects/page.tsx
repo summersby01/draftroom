@@ -45,11 +45,11 @@ export default async function ProjectsPage({
   const activeProjects = projects.filter((item) => !item.submission_done);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageHeader
         title="Projects"
-        description="Compact project tracking for active writing work, due dates, and progress."
-        ctaLabel="New project"
+        description="A simple note-tile list of every active and archived commission."
+        ctaLabel="New Project"
         ctaHref="/projects/new"
       />
       <ProjectFilters />

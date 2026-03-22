@@ -26,15 +26,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const activity = history.map((entry) => formatHistoryMessage(entry, project.title));
 
   return (
-    <div className="space-y-4">
-      <PageHeader title={project.title} description="Update stage progress, keep notes current, and manage the submission state for this commission." />
+    <div className="space-y-5">
+      <PageHeader title={project.title} description="Quick note view for due date, progress, stage updates, and activity." />
 
-      <Card className="bg-paper-soft">
+      <Card className="rounded-[28px] bg-note-purple">
         <CardContent className="space-y-4 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm text-ink-soft">Deadline</p>
-              <p className="mt-1 text-3xl font-semibold tracking-tight text-ink">{getDeadlineLabel(project)}</p>
+              <p className="text-sm text-ink/60">D-day</p>
+              <p className="mt-1 text-4xl font-bold tracking-tight text-ink">{getDeadlineLabel(project)}</p>
             </div>
             <ProjectStatusBadge status={project.overall_status} />
           </div>
@@ -50,20 +50,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-[28px] bg-note-yellow">
         <CardHeader>
-          <h2 className="text-lg font-semibold tracking-tight text-ink">Project summary</h2>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <MetaRow label="Artist" value={project.artist || "Not set"} />
-          <MetaRow label="Client" value={project.client || "Not set"} />
-          <MetaRow label="Submitted" value={formatDate(project.submitted_at)} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <h2 className="text-lg font-semibold tracking-tight text-ink">Stage overview</h2>
+          <h2 className="text-lg font-bold tracking-tight text-ink">Stage snapshot</h2>
         </CardHeader>
         <CardContent className="space-y-3">
           <StageRow label="Syllable planning" status={project.syllable_status} />
@@ -72,38 +61,41 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </CardContent>
       </Card>
 
+      <Card className="rounded-[28px] bg-note-green">
+        <CardHeader>
+          <h2 className="text-lg font-bold tracking-tight text-ink">Project details</h2>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <MetaRow label="Artist" value={project.artist || "Not set"} />
+          <MetaRow label="Client" value={project.client || "Not set"} />
+          <MetaRow label="Submitted" value={formatDate(project.submitted_at)} />
+        </CardContent>
+      </Card>
+
       <ProjectForm project={project} detailMode />
 
-      <Card>
-        <CardHeader>
-          <h2 className="text-lg font-semibold tracking-tight text-ink">Activity timeline</h2>
-        </CardHeader>
-        <CardContent>
-          {activity.length ? (
-            <div className="space-y-3">
-              {activity.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-line bg-surface-soft p-4">
-                  <p className="text-sm font-medium text-ink">{item.message}</p>
-                  <p className="mt-2 text-xs text-ink-muted">
-                    {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-ink-soft">No activity recorded for this project yet.</p>
-          )}
-        </CardContent>
-      </Card>
+      <section className="space-y-3">
+        <h2 className="text-lg font-bold tracking-tight text-ink">Activity Timeline</h2>
+        {activity.length ? (
+          <div className="space-y-3">
+            {activity.map((item, index) => (
+              <div key={item.id} className={`rounded-[24px] p-4 ${getTileColor(index)}`}>
+                <p className="text-sm font-semibold text-ink">{item.message}</p>
+                <p className="mt-2 text-xs text-ink/60">
+                  {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-ink-soft">No activity recorded for this project yet.</p>
+        )}
+      </section>
 
-      <Card>
-        <CardHeader>
-          <h2 className="text-lg font-semibold tracking-tight text-ink">Danger zone</h2>
-        </CardHeader>
-        <CardContent>
-          <DeleteProjectDialog id={project.id} />
-        </CardContent>
-      </Card>
+      <section className="space-y-3 pb-6">
+        <h2 className="text-lg font-bold tracking-tight text-ink">Danger Zone</h2>
+        <DeleteProjectDialog id={project.id} />
+      </section>
     </div>
   );
 }
@@ -111,17 +103,22 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 function MetaRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <p className="text-ink-muted">{label}</p>
-      <p className="text-right font-medium text-ink">{value}</p>
+      <p className="text-ink/60">{label}</p>
+      <p className="text-right font-semibold text-ink">{value}</p>
     </div>
   );
 }
 
 function StageRow({ label, status }: { label: string; status: "not_started" | "in_progress" | "completed" }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-surface-soft p-4">
-      <p className="text-sm font-medium text-ink">{label}</p>
+    <div className="flex items-center justify-between gap-4 rounded-2xl bg-white/45 p-4">
+      <p className="text-sm font-semibold text-ink">{label}</p>
       <StageStatusBadge status={status} />
     </div>
   );
+}
+
+function getTileColor(index: number) {
+  const tones = ["bg-note-blue", "bg-note-yellow", "bg-note-green", "bg-note-purple"] as const;
+  return tones[index % tones.length];
 }

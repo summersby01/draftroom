@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { OVERALL_STATUS_OPTIONS, PROJECT_TYPE_OPTIONS } from "@/lib/constants";
+import { PROJECT_TYPE_OPTIONS } from "@/lib/constants";
 import { calculateProgressPercent } from "@/lib/project-status";
 import { projectSchema, type ProjectFormValues } from "@/lib/validators/project";
 import type { Project } from "@/types/project";
@@ -83,10 +83,11 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className={detailMode ? "space-y-4 pb-28" : "space-y-4 pb-6"}>
-      <Card>
+      <input type="hidden" {...form.register("overall_status")} />
+      <Card className="rounded-[28px] bg-note-blue">
         <CardHeader>
-          <h2 className="text-xl font-semibold tracking-tight text-ink">Project details</h2>
-          <p className="text-sm text-ink-soft">Track writing timeline, commission info, and lyric notes in one place.</p>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Project details</h2>
+          <p className="text-sm text-ink/70">Track writing timeline, commission info, and lyric notes in one place.</p>
         </CardHeader>
         <CardContent className="grid gap-4">
           <Field label="Title" error={form.formState.errors.title?.message}>
@@ -107,11 +108,8 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
           <Field label="Due date" error={form.formState.errors.due_at?.message}>
             <Input type="date" {...form.register("due_at")} />
           </Field>
-          <Field label="Manual status">
-            <Select options={OVERALL_STATUS_OPTIONS.filter((item) => item.value !== "submitted" && item.value !== "overdue")} {...form.register("overall_status")} />
-          </Field>
           <Field label="Submission">
-            <label className="flex h-11 items-center gap-3 rounded-xl border border-line bg-surface px-4 text-sm text-ink">
+            <label className="flex h-12 items-center gap-3 rounded-2xl bg-white px-4 text-sm font-medium text-ink">
               <input type="checkbox" className="h-4 w-4 accent-[hsl(var(--primary))]" {...form.register("submission_done")} />
               Mark submission complete
             </label>
@@ -119,14 +117,14 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-[28px] bg-note-yellow">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold tracking-tight text-ink">Writing stages</h2>
-              <p className="text-sm text-ink-soft">Progress auto-calculates from the three songwriting stages.</p>
+              <h2 className="text-xl font-bold tracking-tight text-ink">Writing stages</h2>
+              <p className="text-sm text-ink/70">Progress auto-calculates from the three songwriting stages.</p>
             </div>
-            <div className="rounded-full border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700">{progress}% complete</div>
+            <div className="rounded-full bg-white/50 px-4 py-2 text-sm font-semibold text-ink">{progress}%</div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -136,9 +134,9 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-[28px] bg-note-green">
         <CardHeader>
-          <h2 className="text-xl font-semibold tracking-tight text-ink">Notes</h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">Notes</h2>
         </CardHeader>
         <CardContent>
           <Textarea {...form.register("notes")} placeholder="Reference phrases, concept notes, rhyme ideas, client feedback..." />
@@ -146,8 +144,8 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
       </Card>
 
       {detailMode ? (
-        <div className="fixed inset-x-0 bottom-[72px] z-20 mx-auto w-full max-w-md border-t border-line bg-surface/95 px-4 pb-4 pt-3 backdrop-blur">
-          <div className="mb-2 flex items-center justify-between text-xs text-ink-soft">
+        <div className="fixed inset-x-0 bottom-[72px] z-20 mx-auto w-full max-w-md bg-white px-4 pb-4 pt-3">
+          <div className="mb-2 flex items-center justify-between text-xs font-semibold text-ink/60">
             <span>{getDeadlineLabel(values)}</span>
             <span>{progress}% complete</span>
           </div>
@@ -203,7 +201,7 @@ function Field({
 }) {
   return (
     <label className="space-y-2 text-sm">
-      <span className="font-medium text-foreground">{label}</span>
+      <span className="font-semibold text-foreground">{label}</span>
       {children}
       {error ? <span className="text-xs text-danger">{error}</span> : null}
     </label>
@@ -220,8 +218,8 @@ function StageField({
   onChange: (value: ProjectFormValues["syllable_status"]) => void;
 }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-line bg-surface-soft p-4">
-      <p className="text-sm font-medium text-ink">{label}</p>
+    <div className="space-y-3 rounded-[22px] bg-white/45 p-4">
+      <p className="text-sm font-semibold text-ink">{label}</p>
       <StageStatusSegmented value={value} onChange={onChange} />
     </div>
   );

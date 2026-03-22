@@ -10,13 +10,13 @@ export function SummaryCard({
   hint: string;
 }) {
   return (
-    <Card className="min-w-[150px] shrink-0">
+    <Card className="min-w-[156px] shrink-0 rounded-[24px] bg-note-yellow">
       <CardHeader className="px-4 pb-2 pt-4">
-        <p className="text-xs uppercase tracking-[0.12em] text-ink-muted">{label}</p>
+        <p className="text-xs uppercase tracking-[0.12em] text-ink/60">{label}</p>
       </CardHeader>
       <CardContent className="px-4 pb-4 pt-0">
-        <p className="text-3xl font-semibold tracking-tight text-ink">{value}</p>
-        <p className="mt-2 text-xs leading-5 text-ink-soft">{hint}</p>
+        <p className="text-3xl font-bold tracking-tight text-ink">{value}</p>
+        <p className="mt-2 text-xs leading-5 text-ink/70">{hint}</p>
       </CardContent>
     </Card>
   );

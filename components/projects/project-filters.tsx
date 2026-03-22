@@ -22,11 +22,7 @@ export function ProjectFilters({ archive = false }: { archive?: boolean }) {
   };
 
   return (
-    <div
-      className={`grid gap-3 rounded-2xl border border-line bg-surface p-4 shadow-soft ${
-        archive ? "md:grid-cols-6" : "md:grid-cols-5"
-      }`}
-    >
+    <div className="space-y-3 rounded-[24px] bg-note-blue p-4">
       <Input
         defaultValue={searchParams.get("query") ?? ""}
         placeholder="Search title, artist, client"
@@ -65,9 +61,8 @@ export function ProjectFilters({ archive = false }: { archive?: boolean }) {
           onChange={(event) => update("year", event.target.value)}
         />
       ) : null}
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Select
-          className="flex-1"
           defaultValue={searchParams.get("sort") ?? "due_at"}
           onChange={(event) => update("sort", event.target.value)}
           options={[
@@ -78,7 +73,7 @@ export function ProjectFilters({ archive = false }: { archive?: boolean }) {
             { value: "progress_percent", label: "Sort: Progress" }
           ]}
         />
-        <Button variant="outline" onClick={() => router.push(archive ? "/archive" : "/projects")}>
+        <Button variant="outline" onClick={() => router.push(archive ? "/archive" : "/projects")} className="min-h-12">
           Reset
         </Button>
       </div>

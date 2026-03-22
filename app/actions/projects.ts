@@ -124,7 +124,10 @@ async function insertHistoryEntries(
   if (!entries.length) return;
 
   const { error } = await supabase.from("project_history" as never).insert(entries as never);
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingProjectHistoryTableError(error)) return;
+    throw new Error(error.message);
+  }
 }
 
 function buildProjectHistoryEntries(existing: Project, next: ProjectFormValues, userId: string): ProjectHistoryInsert[] {
@@ -192,4 +195,14 @@ function normalizeValue(value: string | null | boolean | undefined) {
   if (typeof value === "boolean") return String(value);
   if (value === undefined || value === null || value === "") return null;
   return value;
+}
+
+function isMissingProjectHistoryTableError(error: { message?: string; code?: string } | null) {
+  if (!error) return false;
+
+  return (
+    error.code === "PGRST205" ||
+    error.message?.includes("public.project_history") === true ||
+    error.message?.includes("schema cache") === true
+  );
 }

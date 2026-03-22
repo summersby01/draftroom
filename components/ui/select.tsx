@@ -15,7 +15,7 @@ export function Select({ className, options, ...props }: NativeSelectProps) {
   return (
     <select
       className={cn(
-        "flex h-11 w-full rounded-xl border border-line bg-surface px-4 py-2 text-sm text-ink outline-none transition focus-visible:border-brand-200 focus-visible:ring-4 focus-visible:ring-brand-50",
+        "flex h-12 w-full rounded-2xl border-0 bg-white px-4 py-2 text-base font-medium text-ink outline-none transition focus-visible:ring-0",
         className
       )}
       {...props}

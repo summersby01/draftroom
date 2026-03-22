@@ -25,7 +25,7 @@ export function DeleteProjectDialog({ id }: { id: string }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive">Delete project</Button>
+        <Button variant="destructive" className="w-full min-h-12">Delete project</Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

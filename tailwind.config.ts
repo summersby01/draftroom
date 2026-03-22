@@ -12,20 +12,26 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50: "#F6F1FB",
-          100: "#ECE3F7",
-          200: "#DCCEEE",
+          50: "#F3EDFF",
+          100: "#E8D7FF",
+          200: "#D6BEFF",
           600: "#5B4B8A",
-          700: "#4C3E73"
+          700: "#46386D"
         },
-        paper: "#FAF7F2",
-        "paper-soft": "#F5F1EA",
-        surface: "#FFFDFC",
-        "surface-soft": "#F8F4EE",
-        line: "#E7E0D8",
-        ink: "#1F2430",
+        paper: "#FFFFFF",
+        "paper-soft": "#F7F7F7",
+        surface: "#FFFFFF",
+        "surface-soft": "#FAFAFA",
+        line: "#ECECEC",
+        ink: "#111111",
         "ink-soft": "#4B5563",
-        "ink-muted": "#6B7280",
+        "ink-muted": "#737373",
+        note: {
+          yellow: "#FFF3B0",
+          green: "#D9F8C4",
+          blue: "#C7E9FF",
+          purple: "#E8D7FF"
+        },
         success: "#5F8F6B",
         warning: "#D28B47",
         danger: "#C05A5A",
@@ -70,9 +76,9 @@ const config: Config = {
         serif: ["var(--font-serif)"]
       },
       boxShadow: {
-        soft: "0 8px 24px rgba(31, 36, 48, 0.06)",
-        card: "0 14px 32px rgba(91, 75, 138, 0.10)",
-        panel: "0 12px 30px rgba(31, 36, 48, 0.07)"
+        soft: "none",
+        card: "none",
+        panel: "none"
       }
     }
   },

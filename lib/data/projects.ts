@@ -1,9 +1,16 @@
 import { redirect } from "next/navigation";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 
-import { formatHistoryMessage, getArchiveStats, getDashboardStats, getRiskProjects } from "@/lib/project-insights";
+import {
+  buildArchiveActivityData,
+  formatHistoryMessage,
+  getArchiveStats,
+  getDashboardStats,
+  getRiskProjects
+} from "@/lib/project-insights";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthWindow } from "@/lib/project-status";
+import { getCurrentKstMonthKey, getUtcRangeForKstMonth, toKstMonthKey } from "@/lib/timezone";
 import type { Project, ProjectFilters, ProjectHistory } from "@/types/project";
 
 async function getAuthedSupabase() {
@@ -163,6 +170,7 @@ function isMissingProjectHistoryTableError(error: { message?: string; code?: str
 }
 
 export async function getArchiveData(filters: ProjectFilters = {}) {
+  const { supabase } = await getAuthedSupabase();
   const projects = await getProjects({
     ...filters,
     submitted: "yes",
@@ -170,9 +178,148 @@ export async function getArchiveData(filters: ProjectFilters = {}) {
     sort: filters.sort ?? "created_at",
     direction: filters.direction ?? "desc"
   });
+  const repairedProjects = await repairSubmittedProjects(supabase, projects);
 
   return {
-    projects,
-    stats: getArchiveStats(projects)
+    projects: repairedProjects,
+    stats: getArchiveStats(repairedProjects)
   };
+}
+
+export async function getArchiveActivityData(month?: string) {
+  const { supabase } = await getAuthedSupabase();
+  const monthKey = month && /^\d{4}-\d{2}$/.test(month) ? month : getCurrentKstMonthKey();
+  const selectedMonth = `${monthKey}-01`;
+  const monthDate = parseISO(selectedMonth);
+  const { start, endExclusive } = getUtcRangeForKstMonth(monthKey);
+
+  const [submittedRes, historyRes, brokenSubmittedRes] = await Promise.all([
+    supabase
+      .from("projects")
+      .select("*")
+      .eq("submission_done", true)
+      .gte("submitted_at", start)
+      .lt("submitted_at", endExclusive)
+      .order("submitted_at", { ascending: true }),
+    supabase
+      .from("project_history")
+      .select("*")
+      .eq("action_type", "stage_updated")
+      .in("field_name", ["syllable_status", "chorus_status", "verse_status"])
+      .gte("created_at", start)
+      .lt("created_at", endExclusive)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("projects")
+      .select("*")
+      .eq("submission_done", true)
+      .is("submitted_at", null)
+  ]);
+
+  if (submittedRes.error) throw new Error(submittedRes.error.message);
+  if (historyRes.error && !isMissingProjectHistoryTableError(historyRes.error)) {
+    throw new Error(historyRes.error.message);
+  }
+  if (brokenSubmittedRes.error) throw new Error(brokenSubmittedRes.error.message);
+
+  const submittedProjects = (submittedRes.data ?? []) as Project[];
+  const historyEntries = isMissingProjectHistoryTableError(historyRes.error)
+    ? []
+    : ((historyRes.data ?? []) as ProjectHistory[]);
+  const brokenSubmittedProjects = await repairSubmittedProjects(
+    supabase,
+    (brokenSubmittedRes.data ?? []) as Project[]
+  );
+  const repairedBrokenProjects = brokenSubmittedProjects.filter((project) => {
+    if (!project.submitted_at) return false;
+    return toKstMonthKey(project.submitted_at) === monthKey;
+  });
+  const allSubmittedProjects = dedupeProjectsById([...submittedProjects, ...repairedBrokenProjects]);
+
+  const projectIds = Array.from(
+    new Set([...allSubmittedProjects.map((project) => project.id), ...historyEntries.map((entry) => entry.project_id)])
+  );
+
+  const projectTitles = new Map<string, string>(allSubmittedProjects.map((project) => [project.id, project.title]));
+
+  if (projectIds.length) {
+    const { data: projectTitleRows, error: projectTitlesError } = await supabase
+      .from("projects")
+      .select("id, title")
+      .in("id", projectIds);
+
+    if (projectTitlesError) throw new Error(projectTitlesError.message);
+
+    for (const row of (projectTitleRows ?? []) as Array<{ id: string | null; title: string | null }>) {
+      if (!row.id || !row.title) continue;
+      projectTitles.set(row.id, row.title);
+    }
+  }
+
+  return buildArchiveActivityData({
+    month: monthDate,
+    submittedProjects: allSubmittedProjects,
+    historyEntries,
+    projectTitles
+  });
+}
+
+async function repairSubmittedProjects(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projects: Project[]
+) {
+  const brokenProjects = projects.filter((project) => project.submission_done && !project.submitted_at);
+  if (!brokenProjects.length) return projects;
+
+  const brokenIds = brokenProjects.map((project) => project.id);
+  const { data: submissionHistoryRows, error } = await supabase
+    .from("project_history")
+    .select("project_id, created_at, action_type")
+    .in("project_id", brokenIds)
+    .eq("action_type", "submission_marked")
+    .order("created_at", { ascending: false });
+
+  if (error && !isMissingProjectHistoryTableError(error)) {
+    throw new Error(error.message);
+  }
+
+  const historyByProjectId = new Map<string, string>();
+  for (const row of (submissionHistoryRows ?? []) as Array<{
+    project_id: string;
+    created_at: string;
+    action_type: "submission_marked";
+  }>) {
+    if (!historyByProjectId.has(row.project_id)) {
+      historyByProjectId.set(row.project_id, row.created_at);
+    }
+  }
+
+  const repaired = projects.map((project) => {
+    if (!project.submission_done || project.submitted_at) return project;
+
+    const fallbackSubmittedAt = historyByProjectId.get(project.id) ?? project.updated_at ?? project.created_at;
+    return {
+      ...project,
+      submitted_at: fallbackSubmittedAt,
+      overall_status: "submitted" as const
+    };
+  });
+
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(
+      "[Draft Room] Repaired submitted projects missing submitted_at:",
+      brokenProjects.map((project) => ({
+        id: project.id,
+        title: project.title,
+        updated_at: project.updated_at,
+        repaired_submitted_at: historyByProjectId.get(project.id) ?? project.updated_at ?? project.created_at
+      }))
+    );
+  }
+
+  return repaired;
+}
+
+function dedupeProjectsById(projects: Project[]) {
+  return Array.from(new Map(projects.map((project) => [project.id, project])).values());
 }

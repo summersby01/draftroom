@@ -6,12 +6,12 @@ import { cn } from "@/lib/utils";
 const badgeVariants = cva("inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold", {
   variants: {
     variant: {
-      muted: "bg-black/10 text-ink",
-      plum: "bg-note-purple text-ink",
-      navy: "bg-note-blue text-ink",
-      green: "bg-note-green text-ink",
-      red: "bg-rose-200 text-ink",
-      amber: "bg-note-yellow text-ink"
+      muted: "bg-gray-200 text-ink",
+      plum: "bg-deep-blue text-white",
+      navy: "bg-blue-muted text-white",
+      green: "bg-deep-blue text-white",
+      red: "bg-action text-white",
+      amber: "bg-gray-400 text-ink"
     }
   },
   defaultVariants: {

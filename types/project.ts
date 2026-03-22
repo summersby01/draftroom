@@ -82,6 +82,58 @@ export interface ArchiveStats {
   averageCompletionDays: number;
 }
 
+export interface ArchiveActivityDay {
+  date: string;
+  dayOfMonth: number;
+  isCurrentMonth: boolean;
+  submittedCount: number;
+  progressUnits: number;
+  changeCount: number;
+  activityLevel: number;
+  submittedProjects: ArchiveActivitySubmission[];
+  progressChanges: ArchiveActivityChange[];
+}
+
+export interface ArchiveActivitySubmission {
+  id: string;
+  title: string;
+  submittedAt: string;
+}
+
+export interface ArchiveActivityChange {
+  id: string;
+  projectId: string;
+  title: string;
+  fieldName: string;
+  oldValue: string | null;
+  newValue: string | null;
+  createdAt: string;
+  progressUnits: number;
+  message: string;
+}
+
+export interface ArchiveActivitySummary {
+  submissionsThisMonth: number;
+  totalProgressActivityThisMonth: number;
+  busiestDay: {
+    date: string;
+    label: string;
+    submittedCount: number;
+    progressUnits: number;
+    changeCount: number;
+  } | null;
+}
+
+export interface ArchiveActivityData {
+  month: string;
+  monthLabel: string;
+  days: ArchiveActivityDay[];
+  maxSubmittedCount: number;
+  maxProgressUnits: number;
+  maxActivityLevel: number;
+  summary: ArchiveActivitySummary;
+}
+
 export type ProjectInsert = Omit<
   Project,
   "id" | "created_at" | "updated_at" | "progress_percent" | "submitted_at" | "overall_status"

@@ -17,24 +17,24 @@ export default async function LoginPage({
   const statusMessage = typeof params.status === "string" ? params.status : null;
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-md bg-white px-4 py-6">
+    <div className="mx-auto min-h-screen w-full max-w-md bg-paper px-4 py-6">
       <div className="space-y-4">
-        <section className="rounded-[28px] bg-note-purple p-5">
+        <section className="rounded-[28px] border border-line bg-white p-5 shadow-soft">
           <DraftRoomLogo withWordmark />
           <h1 className="mt-5 text-[2rem] font-bold leading-tight tracking-tight text-ink">
-            A clean note-based workspace for songwriting projects.
+            A focused songwriting workspace.
           </h1>
-          <p className="mt-2 text-sm leading-6 text-ink/70">
-            Track due dates, writing stages, and finished songs with the speed of a native notes app.
+          <p className="mt-2 text-sm leading-6 text-ink-soft">
+            Track due dates, writing stages, and finished songs with a cleaner, more deliberate workflow.
           </p>
         </section>
 
         <div className="grid gap-3">
-          <Feature color="bg-note-yellow" icon={NotebookPen} title="Capture project work" copy="Keep title, D-day, stages, and notes in one fast workflow." />
-          <Feature color="bg-note-blue" icon={Music4} title="Browse your archive" copy="Jump back into completed songs and past commissions without clutter." />
+          <Feature color="border-l-[6px] border-l-action bg-white" icon={NotebookPen} title="Capture project work" copy="Keep title, D-day, stages, and notes in one fast workflow." />
+          <Feature color="border-l-[6px] border-l-blue-muted bg-white" icon={Music4} title="Browse your archive" copy="Jump back into completed songs and past commissions without clutter." />
         </div>
 
-        <Card className="rounded-[28px] bg-note-green">
+        <Card className="rounded-[28px] border border-line bg-white">
           <CardHeader className="space-y-2">
             <h2 className="text-2xl font-bold tracking-tight text-ink">Sign in to Draft Room</h2>
             <p className="text-sm leading-6 text-ink/70">
@@ -86,8 +86,8 @@ function Feature({
   color: string;
 }) {
   return (
-    <div className={`${color} rounded-[24px] p-4`}>
-      <Icon className="h-5 w-5 text-ink" />
+    <div className={`${color} rounded-[24px] p-4 shadow-soft`}>
+      <Icon className="h-5 w-5 text-blue-muted" />
       <p className="mt-3 text-base font-bold text-ink">{title}</p>
       <p className="mt-1 text-sm leading-6 text-ink/70">{copy}</p>
     </div>

@@ -1,14 +1,21 @@
 import {
+  eachDayOfInterval,
   differenceInCalendarDays,
   differenceInDays,
+  endOfMonth,
+  endOfWeek,
   format,
   isSameDay,
   parseISO,
-  startOfToday
+  startOfMonth,
+  startOfToday,
+  startOfWeek
 } from "date-fns";
 
 import type {
   ActivityMessage,
+  ArchiveActivityData,
+  ArchiveActivityDay,
   ArchiveStats,
   DeadlineRiskType,
   DashboardStats,
@@ -16,6 +23,8 @@ import type {
   ProjectHistory,
   ProjectRisk
 } from "@/types/project";
+import { getProjectProgressState } from "@/lib/project-status";
+import { toKstDateKey } from "@/lib/timezone";
 
 const RISK_PRIORITY: DeadlineRiskType[] = ["overdue", "at_risk", "due_today", "collision", "due_soon"];
 
@@ -36,6 +45,8 @@ export function getProjectRisks(project: Project, activeProjects: Project[]): Pr
   const days = differenceInCalendarDays(dueDate, today);
   const risks: ProjectRisk[] = [];
 
+  const { progressPercent } = getProjectProgressState(project);
+
   if (days < 0) {
     risks.push({ type: "overdue", label: "Overdue", tone: "red" });
   } else if (days === 0) {
@@ -44,7 +55,7 @@ export function getProjectRisks(project: Project, activeProjects: Project[]): Pr
     risks.push({ type: "due_soon", label: "Due soon", tone: "navy" });
   }
 
-  if (days <= 2 && project.progress_percent <= 33) {
+  if (days <= 2 && progressPercent <= 33) {
     risks.push({ type: "at_risk", label: "At risk", tone: "red" });
   }
 
@@ -96,6 +107,150 @@ export function getArchiveStats(submittedProjects: Project[], now = new Date()):
     averageCompletionDays: completionDurations.length
       ? Math.round(completionDurations.reduce((sum, value) => sum + value, 0) / completionDurations.length)
       : 0
+  };
+}
+
+const STAGE_SCORES = {
+  not_started: 0,
+  in_progress: 0.5,
+  completed: 1
+} as const;
+
+export function getStageProgressDelta(history: Pick<ProjectHistory, "action_type" | "old_value" | "new_value">) {
+  if (history.action_type !== "stage_updated") return 0;
+
+  const oldScore = STAGE_SCORES[history.old_value as keyof typeof STAGE_SCORES] ?? 0;
+  const newScore = STAGE_SCORES[history.new_value as keyof typeof STAGE_SCORES] ?? 0;
+  const delta = Math.max(0, newScore - oldScore);
+
+  return delta;
+}
+
+export function buildArchiveActivityData({
+  month,
+  submittedProjects,
+  historyEntries,
+  projectTitles
+}: {
+  month: Date;
+  submittedProjects: Project[];
+  historyEntries: ProjectHistory[];
+  projectTitles: Map<string, string>;
+}): ArchiveActivityData {
+  const monthStart = startOfMonth(month);
+  const monthEnd = endOfMonth(month);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+
+  const submittedByDate = new Map<string, number>();
+  const submittedProjectsByDate = new Map<
+    string,
+    { id: string; title: string; submittedAt: string }[]
+  >();
+  submittedProjects.forEach((project) => {
+    if (!project.submitted_at) return;
+    const key = toKstDateKey(project.submitted_at);
+    submittedByDate.set(key, (submittedByDate.get(key) ?? 0) + 1);
+    const items = submittedProjectsByDate.get(key) ?? [];
+    items.push({
+      id: project.id,
+      title: project.title,
+      submittedAt: project.submitted_at
+    });
+    submittedProjectsByDate.set(key, items);
+  });
+
+  const progressByDate = new Map<string, number>();
+  const changeCountByDate = new Map<string, number>();
+  const progressChangesByDate = new Map<
+    string,
+    {
+      id: string;
+      projectId: string;
+      title: string;
+      fieldName: string;
+      oldValue: string | null;
+      newValue: string | null;
+      createdAt: string;
+      progressUnits: number;
+      message: string;
+    }[]
+  >();
+
+  historyEntries.forEach((entry) => {
+    const delta = getStageProgressDelta(entry);
+    if (!delta) return;
+    const key = toKstDateKey(entry.created_at);
+    progressByDate.set(key, roundProgressUnits((progressByDate.get(key) ?? 0) + delta));
+    changeCountByDate.set(key, (changeCountByDate.get(key) ?? 0) + 1);
+
+    const projectTitle = projectTitles.get(entry.project_id) ?? "Untitled project";
+    const changes = progressChangesByDate.get(key) ?? [];
+    changes.push({
+      id: entry.id,
+      projectId: entry.project_id,
+      title: projectTitle,
+      fieldName: humanizeField(entry.field_name ?? "stage"),
+      oldValue: entry.old_value,
+      newValue: entry.new_value,
+      createdAt: entry.created_at,
+      progressUnits: delta,
+      message: `${humanizeField(entry.field_name ?? "stage")} moved from ${formatHistoryValue(entry.old_value)} to ${formatHistoryValue(entry.new_value)}`
+    });
+    progressChangesByDate.set(key, changes);
+  });
+
+  const days: ArchiveActivityDay[] = eachDayOfInterval({
+    start: calendarStart,
+    end: calendarEnd
+  }).map((date) => {
+    const key = format(date, "yyyy-MM-dd");
+    return {
+      date: key,
+      dayOfMonth: Number(format(date, "d")),
+      isCurrentMonth: date >= monthStart && date <= monthEnd,
+      submittedCount: submittedByDate.get(key) ?? 0,
+      progressUnits: progressByDate.get(key) ?? 0,
+      changeCount: changeCountByDate.get(key) ?? 0,
+      activityLevel: roundProgressUnits((submittedByDate.get(key) ?? 0) + (progressByDate.get(key) ?? 0)),
+      submittedProjects: submittedProjectsByDate.get(key) ?? [],
+      progressChanges: progressChangesByDate.get(key) ?? []
+    };
+  });
+
+  const submissionsThisMonth = submittedProjects.length;
+  const currentMonthDays = days.filter((day) => day.isCurrentMonth);
+  const totalProgressActivityThisMonth = roundProgressUnits(
+    currentMonthDays.reduce((sum, day) => sum + day.progressUnits, 0)
+  );
+  const busiestDay = currentMonthDays
+    .filter((day) => day.activityLevel > 0)
+    .sort((a, b) => {
+      if (b.activityLevel !== a.activityLevel) return b.activityLevel - a.activityLevel;
+      if (b.submittedCount !== a.submittedCount) return b.submittedCount - a.submittedCount;
+      return b.progressUnits - a.progressUnits;
+    })[0];
+
+  return {
+    month: format(monthStart, "yyyy-MM"),
+    monthLabel: format(monthStart, "MMMM yyyy"),
+    days,
+    maxSubmittedCount: Math.max(0, ...days.map((day) => day.submittedCount)),
+    maxProgressUnits: Math.max(0, ...days.map((day) => day.progressUnits)),
+    maxActivityLevel: Math.max(0, ...days.map((day) => day.activityLevel)),
+    summary: {
+      submissionsThisMonth,
+      totalProgressActivityThisMonth,
+      busiestDay: busiestDay
+        ? {
+            date: busiestDay.date,
+            label: format(parseISO(busiestDay.date), "MMM d"),
+            submittedCount: busiestDay.submittedCount,
+            progressUnits: busiestDay.progressUnits,
+            changeCount: busiestDay.changeCount
+          }
+        : null
+    }
   };
 }
 
@@ -165,6 +320,10 @@ function formatHistoryValue(value: string | null) {
   if (value === "in_progress") return "In progress";
   if (value === "completed") return "Completed";
   return value;
+}
+
+function roundProgressUnits(value: number) {
+  return Number(value.toFixed(1));
 }
 
 export function isDueToday(project: Pick<Project, "due_at">) {

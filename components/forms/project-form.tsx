@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PROJECT_TYPE_OPTIONS } from "@/lib/constants";
-import { calculateProgressPercent } from "@/lib/project-status";
+import { getProjectProgressState } from "@/lib/project-status";
 import { projectSchema, type ProjectFormValues } from "@/lib/validators/project";
 import type { Project } from "@/types/project";
 
@@ -26,7 +26,7 @@ const DEFAULT_VALUES: ProjectFormValues = {
   artist: "",
   client: "",
   project_type: "lyrics",
-  received_at: new Date().toISOString().slice(0, 10),
+  received_at: undefined,
   due_at: new Date().toISOString().slice(0, 10),
   submission_done: false,
   overall_status: "planned",
@@ -61,7 +61,9 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
   });
 
   const values = form.watch();
-  const progress = calculateProgressPercent(values);
+  const progressState = getProjectProgressState(values);
+  const progress = progressState.progressPercent;
+  const canSubmit = progressState.canSubmit;
 
   const onSubmit = (payload: ProjectFormValues) => {
     startTransition(async () => {
@@ -84,6 +86,7 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className={detailMode ? "space-y-4 pb-28" : "space-y-4 pb-6"}>
       <input type="hidden" {...form.register("overall_status")} />
+      {project ? <input type="hidden" {...form.register("received_at")} /> : null}
       <Card className="rounded-[28px] bg-note-blue">
         <CardHeader>
           <h2 className="text-xl font-bold tracking-tight text-ink">Project details</h2>
@@ -102,15 +105,15 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
           <Field label="Client">
             <Input {...form.register("client")} placeholder="Blue House Publishing" />
           </Field>
-          <Field label="Received date" error={form.formState.errors.received_at?.message}>
-            <Input type="date" {...form.register("received_at")} />
-          </Field>
           <Field label="Due date" error={form.formState.errors.due_at?.message}>
             <Input type="date" {...form.register("due_at")} />
           </Field>
+          <div className="rounded-2xl bg-white/55 px-4 py-3 text-sm font-medium text-ink/70">
+            {project ? `Received on ${project.received_at}` : "Received date is set automatically when you create the project."}
+          </div>
           <Field label="Submission">
             <label className="flex h-12 items-center gap-3 rounded-2xl bg-white px-4 text-sm font-medium text-ink">
-              <input type="checkbox" className="h-4 w-4 accent-[hsl(var(--primary))]" {...form.register("submission_done")} />
+              <input type="checkbox" className="h-4 w-4 accent-brand-600" {...form.register("submission_done")} />
               Mark submission complete
             </label>
           </Field>
@@ -134,7 +137,7 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
         </CardContent>
       </Card>
 
-      <Card className="rounded-[28px] bg-note-green">
+      <Card className="rounded-[28px] bg-note-coral">
         <CardHeader>
           <h2 className="text-xl font-bold tracking-tight text-ink">Notes</h2>
         </CardHeader>
@@ -158,7 +161,7 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
                 type="button"
                 variant={values.submission_done ? "outline" : "secondary"}
                 className="min-h-12 px-4"
-                disabled={isPending}
+                disabled={isPending || (!values.submission_done && !canSubmit)}
                 onClick={() =>
                   startTransition(async () => {
                     try {
@@ -175,6 +178,9 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
               </Button>
             ) : null}
           </div>
+          {!values.submission_done && !canSubmit ? (
+            <p className="mt-2 text-center text-[11px] font-semibold text-ink-soft">Complete all stages to enable Submit.</p>
+          ) : null}
         </div>
       ) : (
         <div className="flex flex-wrap gap-3">

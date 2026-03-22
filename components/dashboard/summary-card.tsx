@@ -3,14 +3,16 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 export function SummaryCard({
   label,
   value,
-  hint
+  hint,
+  tone = "bg-note-yellow"
 }: {
   label: string;
   value: string | number;
   hint: string;
+  tone?: string;
 }) {
   return (
-    <Card className="min-w-[156px] shrink-0 rounded-[24px] bg-note-yellow">
+    <Card className={`min-w-[156px] shrink-0 rounded-[24px] ${tone} hover:scale-[1.01]`}>
       <CardHeader className="px-4 pb-2 pt-4">
         <p className="text-xs uppercase tracking-[0.12em] text-ink/60">{label}</p>
       </CardHeader>

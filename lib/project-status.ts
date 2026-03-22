@@ -16,13 +16,57 @@ const STAGE_SCORES: Record<StageStatus, number> = {
   completed: 1
 };
 
-export function calculateProgressPercent(project: Pick<Project, "syllable_status" | "chorus_status" | "verse_status">) {
-  const score =
-    STAGE_SCORES[project.syllable_status] +
-    STAGE_SCORES[project.chorus_status] +
-    STAGE_SCORES[project.verse_status];
+const VALID_STAGE_STATUSES: readonly StageStatus[] = ["not_started", "in_progress", "completed"];
 
+type StageStateInput = Pick<Project, "syllable_status" | "chorus_status" | "verse_status">;
+
+export function getStageScore(status: string | null | undefined): number {
+  return STAGE_SCORES[normalizeStageStatus(status)];
+}
+
+export function calculateProgressPercent(project: StageStateInput) {
+  const score = getProjectStageScore(project);
   return Math.round((score / 3) * 100);
+}
+
+export function getProjectStageScore(project: StageStateInput) {
+  return (
+    getStageScore(project.syllable_status) +
+    getStageScore(project.chorus_status) +
+    getStageScore(project.verse_status)
+  );
+}
+
+export function isProjectSubmittable(project: StageStateInput) {
+  return (
+    normalizeStageStatus(project.syllable_status) === "completed" &&
+    normalizeStageStatus(project.chorus_status) === "completed" &&
+    normalizeStageStatus(project.verse_status) === "completed"
+  );
+}
+
+export function getProjectProgressState(project: StageStateInput) {
+  return {
+    progressPercent: calculateProgressPercent(project),
+    canSubmit: isProjectSubmittable(project),
+    stages: {
+      syllable_status: normalizeStageStatus(project.syllable_status),
+      chorus_status: normalizeStageStatus(project.chorus_status),
+      verse_status: normalizeStageStatus(project.verse_status)
+    }
+  };
+}
+
+export function normalizeStageStatus(status: string | null | undefined): StageStatus {
+  if (status && VALID_STAGE_STATUSES.includes(status as StageStatus)) {
+    return status as StageStatus;
+  }
+
+  if (process.env.NODE_ENV !== "production" && status !== undefined && status !== null && status !== "") {
+    console.warn(`[Draft Room] Invalid stage status "${status}" received. Falling back to "not_started".`);
+  }
+
+  return "not_started";
 }
 
 export function deriveProjectStatus(
@@ -42,7 +86,7 @@ export function deriveProjectStatus(
   }
 
   const hasProgress = [project.syllable_status, project.chorus_status, project.verse_status].some(
-    (status) => status !== "not_started"
+    (status) => normalizeStageStatus(status) !== "not_started"
   );
 
   return hasProgress ? "in_progress" : "planned";

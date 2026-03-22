@@ -39,7 +39,7 @@ create table if not exists public.projects (
   artist text,
   client text,
   project_type public.project_type not null default 'lyrics',
-  received_at date not null,
+  received_at date not null default current_date,
   due_at date not null,
   submitted_at timestamptz,
   overall_status public.overall_status not null default 'planned',
@@ -76,6 +76,9 @@ create table if not exists public.project_history (
 create index if not exists idx_project_history_project_id on public.project_history(project_id);
 create index if not exists idx_project_history_user_id on public.project_history(user_id);
 create index if not exists idx_project_history_created_at on public.project_history(created_at desc);
+
+alter table public.projects
+alter column received_at set default current_date;
 
 create or replace function public.calculate_project_progress(
   syllable public.stage_status,

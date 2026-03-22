@@ -38,7 +38,7 @@ export interface Database {
           artist?: string | null;
           client?: string | null;
           project_type?: ProjectType;
-          received_at: string;
+          received_at?: string;
           due_at: string;
           submitted_at?: string | null;
           overall_status?: OverallStatus;

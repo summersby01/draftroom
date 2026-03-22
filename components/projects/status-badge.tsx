@@ -4,7 +4,7 @@ import type { OverallStatus, ProjectRisk, StageStatus } from "@/types/project";
 export function ProjectStatusBadge({ status }: { status: OverallStatus }) {
   const map = {
     planned: { label: "Planned", variant: "muted" as const },
-    in_progress: { label: "In progress", variant: "plum" as const },
+    in_progress: { label: "In progress", variant: "navy" as const },
     submitted: { label: "Submitted", variant: "green" as const },
     on_hold: { label: "On hold", variant: "amber" as const },
     overdue: { label: "Overdue", variant: "red" as const }
@@ -17,7 +17,7 @@ export function ProjectStatusBadge({ status }: { status: OverallStatus }) {
 export function StageStatusBadge({ status }: { status: StageStatus }) {
   const map = {
     not_started: { label: "Not started", variant: "muted" as const },
-    in_progress: { label: "In progress", variant: "plum" as const },
+    in_progress: { label: "In progress", variant: "navy" as const },
     completed: { label: "Completed", variant: "green" as const }
   };
 

@@ -10,7 +10,7 @@ import { ProgressBar } from "@/components/projects/progress-bar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getProjectById, getProjectHistory, getProjects } from "@/lib/data/projects";
 import { formatHistoryMessage, getDeadlineLabel, getProjectRisks } from "@/lib/project-insights";
-import { formatDate } from "@/lib/project-status";
+import { formatDate, getProjectProgressState, normalizeStageStatus } from "@/lib/project-status";
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,21 +24,22 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const risks = getProjectRisks(project, activeProjects);
   const activity = history.map((entry) => formatHistoryMessage(entry, project.title));
+  const progressState = getProjectProgressState(project);
 
   return (
     <div className="space-y-5">
       <PageHeader title={project.title} description="Quick note view for due date, progress, stage updates, and activity." />
 
-      <Card className="rounded-[28px] bg-note-purple">
+      <Card className="rounded-[28px] bg-brand-600">
         <CardContent className="space-y-4 p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm text-ink/60">D-day</p>
-              <p className="mt-1 text-4xl font-bold tracking-tight text-ink">{getDeadlineLabel(project)}</p>
+              <p className="text-sm text-white/70">D-day</p>
+              <p className="mt-1 text-4xl font-bold tracking-tight text-white">{getDeadlineLabel(project)}</p>
             </div>
             <ProjectStatusBadge status={project.overall_status} />
           </div>
-          <ProgressBar value={project.progress_percent} />
+          <ProgressBar value={progressState.progressPercent} />
           <div className="flex flex-wrap gap-2">
             <Badge variant="muted">{project.project_type}</Badge>
             <Badge variant="muted">Received {formatDate(project.received_at)}</Badge>
@@ -55,9 +56,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <h2 className="text-lg font-bold tracking-tight text-ink">Stage snapshot</h2>
         </CardHeader>
         <CardContent className="space-y-3">
-          <StageRow label="Syllable planning" status={project.syllable_status} />
-          <StageRow label="Chorus writing" status={project.chorus_status} />
-          <StageRow label="Remaining lyrics" status={project.verse_status} />
+          <StageRow label="Syllable planning" status={progressState.stages.syllable_status} />
+          <StageRow label="Chorus writing" status={progressState.stages.chorus_status} />
+          <StageRow label="Remaining lyrics" status={progressState.stages.verse_status} />
         </CardContent>
       </Card>
 
@@ -79,7 +80,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         {activity.length ? (
           <div className="space-y-3">
             {activity.map((item, index) => (
-              <div key={item.id} className={`rounded-[24px] p-4 ${getTileColor(index)}`}>
+              <div key={item.id} className={`rounded-[24px] p-4 transition duration-150 hover:scale-[1.01] active:scale-[0.99] ${getTileColor(index)}`}>
                 <p className="text-sm font-semibold text-ink">{item.message}</p>
                 <p className="mt-2 text-xs text-ink/60">
                   {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
@@ -113,12 +114,12 @@ function StageRow({ label, status }: { label: string; status: "not_started" | "i
   return (
     <div className="flex items-center justify-between gap-4 rounded-2xl bg-white/45 p-4">
       <p className="text-sm font-semibold text-ink">{label}</p>
-      <StageStatusBadge status={status} />
+      <StageStatusBadge status={normalizeStageStatus(status)} />
     </div>
   );
 }
 
 function getTileColor(index: number) {
-  const tones = ["bg-note-blue", "bg-note-yellow", "bg-note-green", "bg-note-purple"] as const;
+  const tones = ["bg-note-blue", "bg-note-yellow", "bg-note-green", "bg-note-purple", "bg-note-coral"] as const;
   return tones[index % tones.length];
 }

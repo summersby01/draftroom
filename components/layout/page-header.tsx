@@ -15,13 +15,13 @@ export function PageHeader({
   ctaHref?: Route;
 }) {
   return (
-    <div className="space-y-3">
-      <div>
-        <h1 className="text-[2rem] font-bold tracking-tight text-ink">{title}</h1>
-        <p className="mt-1 text-sm leading-6 text-ink-soft">{description}</p>
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <h1 className="text-[2.15rem] font-black tracking-[-0.04em] text-ink">{title}</h1>
+        <p className="max-w-[30rem] text-sm leading-6 text-ink-soft">{description}</p>
       </div>
       {ctaLabel && ctaHref ? (
-        <Button asChild className="w-full">
+        <Button asChild className="min-h-12 w-full text-base font-bold">
           <Link href={ctaHref}>{ctaLabel}</Link>
         </Button>
       ) : null}

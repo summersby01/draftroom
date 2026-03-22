@@ -22,7 +22,7 @@ export function ProjectFilters({ archive = false }: { archive?: boolean }) {
   };
 
   return (
-    <div className="space-y-3 rounded-[24px] bg-note-blue p-4">
+    <div className="space-y-3 rounded-[24px] bg-note-coral p-4">
       <Input
         defaultValue={searchParams.get("query") ?? ""}
         placeholder="Search title, artist, client"

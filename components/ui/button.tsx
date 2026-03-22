@@ -5,15 +5,15 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-2xl text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center rounded-2xl text-sm font-semibold transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
   {
     variants: {
       variant: {
-        default: "bg-ink text-white hover:bg-black/90",
-        secondary: "bg-brand-100 text-ink hover:bg-brand-200",
-        outline: "border border-line bg-white text-ink hover:bg-neutral-50",
-        ghost: "text-ink-soft hover:bg-neutral-100 hover:text-ink",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        default: "bg-action text-white hover:bg-brand-600 hover:scale-[1.01]",
+        secondary: "border border-blue-muted bg-white text-blue-muted hover:bg-blue-muted hover:text-white hover:scale-[1.01]",
+        outline: "border border-line bg-white text-ink hover:border-blue-muted hover:text-blue-muted hover:scale-[1.01]",
+        ghost: "text-ink-soft hover:bg-gray-100 hover:text-ink",
+        destructive: "bg-deep-blue text-white hover:opacity-95 hover:scale-[1.01]"
       },
       size: {
         default: "h-11 px-5",

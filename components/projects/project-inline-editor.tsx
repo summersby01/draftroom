@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { ArrowRight, Check, Circle } from "lucide-react";
 import { toast } from "sonner";
 
 import { updateProjectInline } from "@/app/actions/projects";
@@ -20,9 +21,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { CARD_THEMES, getProjectCardThemeName } from "@/lib/card-themes";
 import { cn } from "@/lib/utils";
 import { deriveProjectStatus, getProjectProgressState, normalizeStageStatus } from "@/lib/project-status";
-import type { OverallStatus, Project, StageStatus } from "@/types/project";
-
-const STAGE_ORDER: StageStatus[] = ["not_started", "in_progress", "completed"];
+import type { OverallStatus, Project } from "@/types/project";
 
 type EditableProject = Pick<
   Project,
@@ -62,12 +61,8 @@ export function ProjectInlineEditor({
   ];
   const progressState = getProjectProgressState(localProject);
   const canSubmit = progressState.canSubmit && !localProject.submission_done;
-
-  const stagePills: { key: keyof Pick<Project, "syllable_status" | "chorus_status" | "verse_status">; label: string }[] = [
-    { key: "syllable_status", label: "Syllable" },
-    { key: "chorus_status", label: "Chorus" },
-    { key: "verse_status", label: "Lyrics" }
-  ];
+  const stageOverview = getStageOverview(progressState.stages);
+  const nextStage = getNextActionableStage(progressState.stages);
 
   const submit = (patch: Partial<EditableProject>) => {
     const previous = localProject;
@@ -109,82 +104,132 @@ export function ProjectInlineEditor({
       onClick={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
     >
-      <div className="grid grid-cols-3 gap-2">
-        {stagePills.map((stage) => (
-          <button
-            key={stage.key}
-            type="button"
-            disabled={isPending}
-            onClick={() =>
-              submit({ [stage.key]: getNextStageStatus(progressState.stages[stage.key]) } as Partial<EditableProject>)
-            }
-            className={cn(
-              "min-h-11 rounded-full px-3 text-xs font-bold transition active:scale-[0.98]",
-              getStagePillClass(progressState.stages[stage.key], theme),
-              isPending && "opacity-70"
-            )}
-          >
-            {stage.label}
-          </button>
-        ))}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft">Stage flow</p>
+          <p className="text-xs font-semibold text-ink-soft">{progressState.progressPercent}% complete</p>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {stageOverview.map((stage) => (
+            <div
+              key={stage.label}
+              className={cn(
+                "min-h-11 rounded-full px-3 py-2 text-center text-[11px] font-bold",
+                getStagePillClass(stage.tone, theme)
+              )}
+            >
+              <span className="flex items-center justify-center gap-1.5">
+                <StageStatusIcon tone={stage.tone} />
+                <span>{stage.label}</span>
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogTrigger asChild>
+      {nextStage ? (
+        <div className="space-y-2 rounded-[20px] bg-white/75 px-4 py-3">
+          <p className="text-xs font-semibold text-ink-soft">Next step: {nextStage.label}</p>
           <Button
             type="button"
-            disabled={isPending || !canSubmit}
-            className={cn(
-              "min-h-12 w-full text-sm font-bold",
-              localProject.submission_done
-                ? "bg-note-green text-ink hover:bg-note-green"
-                : canSubmit
-                  ? theme.button
-                  : "bg-black/10 text-ink-soft hover:bg-black/10"
-            )}
+            disabled={isPending}
+            className={cn("min-h-12 w-full text-sm font-bold", theme.button)}
+            onClick={() => submit({ [nextStage.key]: "completed" } as Partial<EditableProject>)}
           >
-            {localProject.submission_done ? "Submitted" : isPending ? "Submitting..." : "Submit"}
+            <span className="inline-flex items-center gap-2">
+              <ArrowRight className="h-4 w-4" />
+              {isPending ? "Saving..." : `Complete ${nextStage.label}`}
+            </span>
           </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Submit this project?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will mark the project as submitted and move it to Archive.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancelButton disabled={isPending}>Cancel</AlertDialogCancelButton>
-            <AlertDialogAction
-              className={buttonVariants({ variant: "default" })}
-              disabled={isPending || !canSubmit}
-              onClick={() => {
-                setConfirmOpen(false);
-                submit({ submission_done: true, overall_status: "submitted" });
-              }}
-            >
-              {isPending ? "Submitting..." : "Submit"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        </div>
+      ) : null}
 
-      {!localProject.submission_done && !canSubmit ? (
-        <p className="text-center text-[11px] font-semibold text-ink-soft">Complete all stages to enable Submit.</p>
+      {localProject.submission_done ? (
+        <Button
+          type="button"
+          disabled
+          className="min-h-12 w-full bg-note-green text-ink hover:bg-note-green"
+        >
+          Submitted
+        </Button>
+      ) : canSubmit ? (
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogTrigger asChild>
+            <Button type="button" disabled={isPending} className={cn("min-h-12 w-full text-sm font-bold", theme.button)}>
+              {isPending ? "Submitting..." : "Submit"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Submit this project?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will mark the project as submitted and move it to Archive.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancelButton disabled={isPending}>Cancel</AlertDialogCancelButton>
+              <AlertDialogAction
+                className={buttonVariants({ variant: "default" })}
+                disabled={isPending || !canSubmit}
+                onClick={() => {
+                  setConfirmOpen(false);
+                  submit({ submission_done: true, overall_status: "submitted" });
+                }}
+              >
+                {isPending ? "Submitting..." : "Submit"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       ) : null}
     </div>
   );
 }
 
-function getNextStageStatus(status: StageStatus): StageStatus {
-  const index = STAGE_ORDER.indexOf(status);
-  return STAGE_ORDER[(index + 1) % STAGE_ORDER.length];
+function getStagePillClass(
+  tone: "completed" | "current" | "upcoming",
+  theme: (typeof CARD_THEMES)[keyof typeof CARD_THEMES]
+) {
+  if (tone === "completed") return theme.stageDone;
+  if (tone === "current") return theme.stageActive;
+  return theme.stageIdle;
 }
 
-function getStagePillClass(status: StageStatus, theme: (typeof CARD_THEMES)[keyof typeof CARD_THEMES]) {
-  if (status === "completed") return theme.stageDone;
-  if (status === "in_progress") return theme.stageActive;
-  return theme.stageIdle;
+function getNextActionableStage(stages: ReturnType<typeof getProjectProgressState>["stages"]) {
+  if (stages.syllable_status !== "completed") return { key: "syllable_status" as const, label: "Syllable" };
+  if (stages.chorus_status !== "completed") return { key: "chorus_status" as const, label: "Chorus" };
+  if (stages.verse_status !== "completed") return { key: "verse_status" as const, label: "Lyrics" };
+  return null;
+}
+
+function getStageOverview(stages: ReturnType<typeof getProjectProgressState>["stages"]) {
+  const nextStage = getNextActionableStage(stages)?.key;
+
+  return [
+    { label: "Syllable", key: "syllable_status" as const, status: stages.syllable_status },
+    { label: "Chorus", key: "chorus_status" as const, status: stages.chorus_status },
+    { label: "Lyrics", key: "verse_status" as const, status: stages.verse_status }
+  ].map((stage) => ({
+    ...stage,
+    tone:
+      stage.status === "completed"
+        ? ("completed" as const)
+        : stage.key === nextStage
+          ? ("current" as const)
+          : ("upcoming" as const)
+  }));
+}
+
+function StageStatusIcon({ tone }: { tone: "completed" | "current" | "upcoming" }) {
+  if (tone === "completed") {
+    return <Check className="h-3.5 w-3.5" strokeWidth={3} />;
+  }
+
+  if (tone === "current") {
+    return <ArrowRight className="h-3.5 w-3.5" strokeWidth={3} />;
+  }
+
+  return <Circle className="h-3.5 w-3.5" strokeWidth={2.5} />;
 }
 
 function applyOptimisticProject(project: EditableProject, patch: Partial<EditableProject>): EditableProject {

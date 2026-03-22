@@ -153,35 +153,53 @@ export function ProjectInlineEditor({
           Submitted
         </Button>
       ) : canSubmit ? (
-        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <AlertDialogTrigger asChild>
-            <Button type="button" disabled={isPending} className={cn("min-h-12 w-full text-sm font-bold", theme.button)}>
-              {isPending ? "Submitting..." : "Submit"}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Submit this project?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will mark the project as submitted and move it to Archive.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancelButton disabled={isPending}>Cancel</AlertDialogCancelButton>
-              <AlertDialogAction
-                className={buttonVariants({ variant: "default" })}
-                disabled={isPending || !canSubmit}
-                onClick={() => {
-                  setConfirmOpen(false);
-                  submit({ submission_done: true, overall_status: "submitted" });
-                }}
+        <div className="space-y-2">
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                disabled={isPending}
+                className={cn(
+                  "min-h-12 w-full text-sm font-bold transition-all duration-200 ease-out",
+                  "bg-orange-500 text-white shadow-[0_8px_18px_rgba(249,115,22,0.28)] hover:bg-orange-600 hover:scale-[1.01] active:scale-[0.99]"
+                )}
               >
                 {isPending ? "Submitting..." : "Submit"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      ) : null}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Submit this project?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will mark the project as submitted and move it to Archive.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancelButton disabled={isPending}>Cancel</AlertDialogCancelButton>
+                <AlertDialogAction
+                  className={buttonVariants({ variant: "default" })}
+                  disabled={isPending || !canSubmit}
+                  onClick={() => {
+                    setConfirmOpen(false);
+                    submit({ submission_done: true, overall_status: "submitted" });
+                  }}
+                >
+                  {isPending ? "Submitting..." : "Submit"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <p className="text-center text-[11px] font-semibold text-orange-600">Ready to submit 🎉</p>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          disabled
+          className="min-h-12 w-full bg-gray-200 text-gray-500 transition-colors duration-200 hover:bg-gray-200"
+        >
+          Submit
+        </Button>
+      )}
     </div>
   );
 }

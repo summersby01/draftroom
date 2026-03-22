@@ -1,5 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { FilePenLine, LayoutDashboard, LibraryBig, LogOut, Settings2 } from "lucide-react";
 
 import { signOut } from "@/app/actions/auth";
@@ -15,12 +18,12 @@ const icons = {
 };
 
 export function AppShell({
-  pathname,
   children
 }: {
-  pathname: string;
   children: ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-paper px-4 pb-24 pt-4">
       <header className="sticky top-0 z-20 -mx-4 mb-5 bg-paper px-4 pb-4">
@@ -42,7 +45,10 @@ export function AppShell({
           <div className="grid grid-cols-4 gap-2">
           {NAV_ITEMS.map((item) => {
             const Icon = icons[item.href as keyof typeof icons];
-            const active = pathname.startsWith(item.href);
+            const active =
+              item.href === "/dashboard"
+                ? pathname === "/dashboard"
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
             return (
               <Link

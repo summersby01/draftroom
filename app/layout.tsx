@@ -1,13 +1,20 @@
 import type { ReactNode } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 
+import { PwaRegister } from "@/components/pwa/pwa-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  applicationName: "Draft Room",
   title: "Draft Room",
   description: "Draft Room: Songwriter Archive",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Draft Room"
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "32x32" },
@@ -17,10 +24,15 @@ export const metadata: Metadata = {
   }
 };
 
+export const viewport: Viewport = {
+  themeColor: "#0F4C81"
+};
+
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
       <body className="font-sans antialiased">
+        <PwaRegister />
         {children}
         <Toaster richColors position="top-right" />
       </body>

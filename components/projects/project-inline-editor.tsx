@@ -134,7 +134,7 @@ export function ProjectInlineEditor({
             type="button"
             disabled={isPending}
             className={cn("min-h-12 w-full text-sm font-bold", theme.button)}
-            onClick={() => submit({ [nextStage.key]: "completed" } as Partial<EditableProject>)}
+            onClick={() => submit(getStageCompletionPatch(nextStage.key))}
           >
             <span className="inline-flex items-center gap-2">
               <ArrowRight className="h-4 w-4" />
@@ -218,6 +218,14 @@ function getNextActionableStage(stages: ReturnType<typeof getProjectProgressStat
   if (stages.chorus_status !== "completed") return { key: "chorus_status" as const, label: "Chorus" };
   if (stages.verse_status !== "completed") return { key: "verse_status" as const, label: "Lyrics" };
   return null;
+}
+
+function getStageCompletionPatch(
+  key: keyof Pick<Project, "syllable_status" | "chorus_status" | "verse_status">
+): Partial<EditableProject> {
+  if (key === "syllable_status") return { syllable_status: "completed" };
+  if (key === "chorus_status") return { chorus_status: "completed" };
+  return { verse_status: "completed" };
 }
 
 function getStageOverview(stages: ReturnType<typeof getProjectProgressState>["stages"]) {

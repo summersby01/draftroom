@@ -10,6 +10,12 @@ function normalizeDateInput(value: unknown) {
   return trimmed.length ? trimmed : undefined;
 }
 
+function normalizeTimeInput(value: unknown) {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+}
+
 const optionalTrimmed = z
   .string()
   .trim()
@@ -25,6 +31,7 @@ export const projectSchema = z
     project_type: z.enum(["lyrics", "adaptation", "ost", "idol", "topline", "other"]),
     received_at: z.preprocess(normalizeDateInput, z.string().optional()),
     due_at: z.preprocess(normalizeDateInput, z.string({ required_error: "Due date is required" }).min(1, "Due date is required")),
+    due_time: z.preprocess(normalizeTimeInput, z.string().regex(/^\d{2}:\d{2}$/, "Invalid time").nullable().optional()),
     submission_done: z.boolean().default(false),
     overall_status: z.enum(["planned", "in_progress", "submitted", "on_hold", "overdue"]).default("planned"),
     syllable_status: z.enum(["not_started", "in_progress", "completed"]).default("not_started"),

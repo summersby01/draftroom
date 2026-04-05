@@ -31,6 +31,7 @@ export interface Project {
   project_type: ProjectType;
   received_at: string;
   due_at: string;
+  due_time: string | null;
   submitted_at: string | null;
   overall_status: OverallStatus;
   submission_done: boolean;

@@ -28,6 +28,7 @@ const DEFAULT_VALUES: ProjectFormValues = {
   project_type: "lyrics",
   received_at: undefined,
   due_at: new Date().toISOString().slice(0, 10),
+  due_time: undefined,
   submission_done: false,
   overall_status: "planned",
   syllable_status: "not_started",
@@ -50,6 +51,7 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
           project_type: project.project_type,
           received_at: project.received_at,
           due_at: project.due_at,
+          due_time: project.due_time ?? undefined,
           submission_done: project.submission_done,
           overall_status: project.overall_status,
           syllable_status: project.syllable_status,
@@ -105,9 +107,14 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
           <Field label="Client">
             <Input {...form.register("client")} placeholder="Blue House Publishing" />
           </Field>
-          <Field label="Due date" error={form.formState.errors.due_at?.message}>
-            <Input type="date" {...form.register("due_at")} />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Due date" error={form.formState.errors.due_at?.message}>
+              <Input type="date" {...form.register("due_at")} />
+            </Field>
+            <Field label="Due time" error={form.formState.errors.due_time?.message}>
+              <Input type="time" {...form.register("due_time")} />
+            </Field>
+          </div>
           <div className="rounded-2xl bg-white/55 px-4 py-3 text-sm font-medium text-ink/70">
             {project ? `Received on ${project.received_at}` : "Received date is set automatically when you create the project."}
           </div>

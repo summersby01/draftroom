@@ -8,7 +8,7 @@ import { ProjectInlineEditor } from "@/components/projects/project-inline-editor
 import { Card, CardContent } from "@/components/ui/card";
 import { CARD_THEMES, getProjectCardThemeName } from "@/lib/card-themes";
 import { getDeadlineLabel, getProjectRisks } from "@/lib/project-insights";
-import { getProjectProgressState, normalizeStageStatus } from "@/lib/project-status";
+import { formatDueCompact, getProjectProgressState, normalizeStageStatus } from "@/lib/project-status";
 import type { Project } from "@/types/project";
 import { ProgressBar } from "@/components/projects/progress-bar";
 import { RiskBadge } from "@/components/projects/status-badge";
@@ -52,6 +52,9 @@ export function ProjectCard({ project, activeProjects }: { project: Project; act
                   {[localProject.artist, localProject.client].filter(Boolean).join(" • ")}
                 </p>
               ) : null}
+              <p className={`mt-1 text-xs font-semibold ${theme.textSecondary}`}>
+                Due {formatDueCompact(localProject)}
+              </p>
             </div>
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${theme.statusPill}`}>{getStatusLabel(localProject.overall_status)}</span>
           </div>

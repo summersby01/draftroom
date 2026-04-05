@@ -27,6 +27,7 @@ type EditableProject = Pick<
   Project,
   | "id"
   | "due_at"
+  | "due_time"
   | "overall_status"
   | "submission_done"
   | "syllable_status"
@@ -77,6 +78,7 @@ export function ProjectInlineEditor({
         const nextProject = {
           id: updated.id,
           due_at: updated.due_at,
+          due_time: updated.due_time,
           overall_status: updated.overall_status,
           submission_done: updated.submission_done,
           syllable_status: updated.syllable_status,
@@ -264,6 +266,7 @@ function applyOptimisticProject(project: EditableProject, patch: Partial<Editabl
   const overallStatus = deriveProjectStatus({
     submission_done: next.submission_done,
     due_at: next.due_at,
+    due_time: next.due_time,
     overall_status: (patch.overall_status ?? next.overall_status) as OverallStatus,
     syllable_status: normalizeStageStatus(next.syllable_status),
     chorus_status: normalizeStageStatus(next.chorus_status),

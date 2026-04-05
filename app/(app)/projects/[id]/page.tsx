@@ -10,7 +10,7 @@ import { ProgressBar } from "@/components/projects/progress-bar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getProjectById, getProjectHistory, getProjects } from "@/lib/data/projects";
 import { formatHistoryMessage, getDeadlineLabel, getProjectRisks } from "@/lib/project-insights";
-import { formatDate, getProjectProgressState, normalizeStageStatus } from "@/lib/project-status";
+import { formatDate, formatDueDateTime, getProjectProgressState, normalizeStageStatus } from "@/lib/project-status";
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -43,7 +43,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <div className="flex flex-wrap gap-2">
             <Badge variant="muted">{project.project_type}</Badge>
             <Badge variant="muted">Received {formatDate(project.received_at)}</Badge>
-            <Badge variant="muted">Due {formatDate(project.due_at)}</Badge>
+            <Badge variant="muted">Due {formatDueDateTime(project)}</Badge>
             {risks.map((risk) => (
               <RiskBadge key={risk.type} risk={risk} />
             ))}

@@ -23,16 +23,20 @@ import type {
   ProjectHistory,
   ProjectRisk
 } from "@/types/project";
-import { getProjectProgressState } from "@/lib/project-status";
+import { getProjectDueDateTime, getProjectProgressState } from "@/lib/project-status";
 import { toKstDateKey } from "@/lib/timezone";
 
 const RISK_PRIORITY: DeadlineRiskType[] = ["overdue", "at_risk", "due_today", "collision", "due_soon"];
 
-export function getDeadlineLabel(project: Pick<Project, "due_at" | "submission_done">) {
+export function getDeadlineLabel(project: Pick<Project, "due_at" | "submission_done"> & { due_time?: string | null }) {
   if (project.submission_done) return "Submitted";
 
-  const days = differenceInCalendarDays(parseISO(project.due_at), startOfToday());
-  if (days < 0) return `Overdue ${Math.abs(days)}d`;
+  const dueDate = getProjectDueDateTime(project);
+  const now = new Date();
+  const days = differenceInCalendarDays(dueDate, startOfToday());
+
+  if (project.due_time && dueDate < now) return "Overdue";
+  if (dueDate < now && days <= 0) return "Overdue";
   if (days === 0) return "Due Today";
   return `D-${days}`;
 }
@@ -41,13 +45,15 @@ export function getProjectRisks(project: Project, activeProjects: Project[]): Pr
   if (project.submission_done) return [];
 
   const today = startOfToday();
-  const dueDate = parseISO(project.due_at);
+  const dueDate = getProjectDueDateTime(project);
   const days = differenceInCalendarDays(dueDate, today);
   const risks: ProjectRisk[] = [];
 
   const { progressPercent } = getProjectProgressState(project);
 
-  if (days < 0) {
+  if (project.due_time && dueDate < new Date()) {
+    risks.push({ type: "overdue", label: "Overdue", tone: "red" });
+  } else if (days < 0) {
     risks.push({ type: "overdue", label: "Overdue", tone: "red" });
   } else if (days === 0) {
     risks.push({ type: "due_today", label: "Due today", tone: "amber" });
@@ -79,7 +85,7 @@ export function getRiskProjects(projects: Project[]) {
       const aPriority = RISK_PRIORITY.indexOf(a.risks[0].type);
       const bPriority = RISK_PRIORITY.indexOf(b.risks[0].type);
       if (aPriority !== bPriority) return aPriority - bPriority;
-      return differenceInCalendarDays(parseISO(a.project.due_at), parseISO(b.project.due_at));
+      return getProjectDueDateTime(a.project).getTime() - getProjectDueDateTime(b.project).getTime();
     });
 }
 
@@ -281,12 +287,14 @@ export function formatHistoryMessage(history: ProjectHistory, projectTitle: stri
 }
 
 function hasCollisionRisk(project: Project, activeProjects: Project[]) {
-  const sameDueDateCount = activeProjects.filter((item) => item.due_at === project.due_at).length;
+  const sameDueDateCount = activeProjects.filter(
+    (item) => item.due_at === project.due_at && (item.due_time ?? null) === (project.due_time ?? null)
+  ).length;
   if (sameDueDateCount > 1) return true;
 
-  const dueDate = parseISO(project.due_at);
+  const dueDate = getProjectDueDateTime(project);
   const clustered = activeProjects.filter((item) => {
-    const itemDate = parseISO(item.due_at);
+    const itemDate = getProjectDueDateTime(item);
     return Math.abs(differenceInCalendarDays(itemDate, dueDate)) <= 7;
   });
 
@@ -300,6 +308,7 @@ function humanizeField(field: string) {
     client: "client",
     project_type: "project type",
     due_at: "due date",
+    due_time: "due time",
     received_at: "received date",
     notes: "notes",
     submission_done: "submission",
@@ -326,6 +335,6 @@ function roundProgressUnits(value: number) {
   return Number(value.toFixed(1));
 }
 
-export function isDueToday(project: Pick<Project, "due_at">) {
-  return isSameDay(parseISO(project.due_at), startOfToday());
+export function isDueToday(project: Pick<Project, "due_at"> & { due_time?: string | null }) {
+  return isSameDay(getProjectDueDateTime(project), startOfToday());
 }

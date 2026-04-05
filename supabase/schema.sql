@@ -41,6 +41,7 @@ create table if not exists public.projects (
   project_type public.project_type not null default 'lyrics',
   received_at date not null default current_date,
   due_at date not null,
+  due_time time,
   submitted_at timestamptz,
   overall_status public.overall_status not null default 'planned',
   submission_done boolean not null default false,
@@ -80,6 +81,9 @@ create index if not exists idx_project_history_created_at on public.project_hist
 alter table public.projects
 alter column received_at set default current_date;
 
+alter table public.projects
+add column if not exists due_time time;
+
 create or replace function public.calculate_project_progress(
   syllable public.stage_status,
   chorus public.stage_status,
@@ -100,6 +104,7 @@ create or replace function public.derive_overall_status(
   manual_status public.overall_status,
   submission_done boolean,
   due_at date,
+  due_time time,
   syllable public.stage_status,
   chorus public.stage_status,
   verse public.stage_status
@@ -117,7 +122,11 @@ begin
     return 'on_hold';
   end if;
 
-  if due_at < current_date then
+  if due_time is not null then
+    if ((due_at::timestamp + due_time) at time zone 'Asia/Seoul') < now() then
+      return 'overdue';
+    end if;
+  elsif due_at < current_date then
     return 'overdue';
   end if;
 
@@ -139,6 +148,7 @@ begin
     coalesce(new.overall_status, 'planned'),
     new.submission_done,
     new.due_at,
+    new.due_time,
     new.syllable_status,
     new.chorus_status,
     new.verse_status

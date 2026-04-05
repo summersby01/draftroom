@@ -68,6 +68,7 @@ export async function updateProject(id: string, values: ProjectFormValues) {
     : deriveProjectStatus({
         submission_done: false,
         due_at: parsed.due_at,
+        due_time: parsed.due_time,
         overall_status: parsed.overall_status,
         syllable_status: parsed.syllable_status,
         chorus_status: parsed.chorus_status,
@@ -108,6 +109,7 @@ export async function updateProjectInline(id: string, patch: InlineProjectUpdate
       : deriveProjectStatus({
           submission_done: false,
           due_at: nextProject.due_at,
+          due_time: nextProject.due_time,
           overall_status: nextProject.overall_status,
           syllable_status: nextProject.syllable_status,
           chorus_status: nextProject.chorus_status,
@@ -122,6 +124,7 @@ export async function updateProjectInline(id: string, patch: InlineProjectUpdate
     payload.overall_status = deriveProjectStatus({
       submission_done: nextProject.submission_done,
       due_at: nextProject.due_at,
+      due_time: nextProject.due_time,
       overall_status: nextProject.overall_status,
       syllable_status: nextProject.syllable_status,
       chorus_status: nextProject.chorus_status,
@@ -165,6 +168,7 @@ export async function toggleSubmission(id: string, submissionDone: boolean) {
       : deriveProjectStatus({
           submission_done: false,
           due_at: existing.due_at,
+          due_time: existing.due_time,
           overall_status: existing.overall_status === "submitted" ? "planned" : existing.overall_status,
           syllable_status: existing.syllable_status,
           chorus_status: existing.chorus_status,
@@ -269,6 +273,10 @@ function buildProjectHistoryEntries(existing: Project, next: ProjectFormValues, 
     push("due_date_changed", "due_at", existing.due_at, next.due_at);
   }
 
+  if (normalizeValue(existing.due_time) !== normalizeValue(next.due_time)) {
+    push("due_date_changed", "due_time", normalizeValue(existing.due_time), normalizeValue(next.due_time));
+  }
+
   if (normalizeValue(existing.notes) !== normalizeValue(next.notes)) {
     push("note_updated", "notes", normalizeValue(existing.notes), normalizeValue(next.notes));
   }
@@ -311,6 +319,7 @@ function projectToFormValues(project: Project): ProjectFormValues {
     project_type: project.project_type,
     received_at: project.received_at,
     due_at: project.due_at,
+    due_time: project.due_time,
     submission_done: project.submission_done,
     overall_status: project.overall_status,
     syllable_status: project.syllable_status,
@@ -327,6 +336,7 @@ function normalizeProjectInsertPayload(values: ProjectFormValues, userId: string
     : deriveProjectStatus({
         submission_done: false,
         due_at: values.due_at,
+        due_time: values.due_time,
         overall_status: values.overall_status,
         syllable_status: values.syllable_status,
         chorus_status: values.chorus_status,
@@ -340,6 +350,7 @@ function normalizeProjectInsertPayload(values: ProjectFormValues, userId: string
     project_type: values.project_type,
     received_at: normalizeDateString(values.received_at) ?? new Date().toISOString().slice(0, 10),
     due_at: normalizeRequiredDateString(values.due_at),
+    due_time: normalizeTimeString(values.due_time),
     submitted_at: submittedAt,
     submission_done: values.submission_done,
     overall_status: overallStatus,
@@ -372,6 +383,12 @@ function normalizeRequiredDateString(value: string) {
     throw new Error("Due date is required");
   }
   return normalized;
+}
+
+function normalizeTimeString(value: string | null | undefined) {
+  if (value === undefined || value === null || value === "") return null;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
 }
 
 function isMissingProjectHistoryTableError(error: { message?: string; code?: string } | null) {

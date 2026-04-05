@@ -8,6 +8,7 @@ import {
   getDashboardStats,
   getRiskProjects
 } from "@/lib/project-insights";
+import { compareProjectDeadlines, getProjectDueDateTime } from "@/lib/project-status";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthWindow } from "@/lib/project-status";
 import { getCurrentKstMonthKey, getUtcRangeForKstMonth, toKstMonthKey } from "@/lib/timezone";
@@ -59,11 +60,23 @@ export async function getProjects(filters: ProjectFilters = {}) {
   const sort = filters.sort ?? "due_at";
   const ascending = (filters.direction ?? "asc") === "asc";
   query = query.order(sort, { ascending });
+  if (sort === "due_at") {
+    query = query.order("due_time", { ascending, nullsFirst: false });
+  }
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
 
-  return (data ?? []) as Project[];
+  const projects = (data ?? []) as Project[];
+
+  if (sort === "due_at") {
+    projects.sort((a, b) => {
+      const delta = compareProjectDeadlines(a, b);
+      return ascending ? delta : -delta;
+    });
+  }
+
+  return projects;
 }
 
 export async function getProjectById(id: string) {
@@ -130,7 +143,7 @@ export async function getDashboardData() {
 
   const overdue = active.filter((project) => project.overall_status === "overdue");
   const dueSoon = active.filter((project) => {
-    const days = differenceInCalendarDays(parseISO(project.due_at), new Date());
+    const days = differenceInCalendarDays(getProjectDueDateTime(project), new Date());
     return days >= 0 && days <= 7 && project.overall_status !== "overdue";
   });
   const inProgress = active.filter((project) => project.overall_status === "in_progress");

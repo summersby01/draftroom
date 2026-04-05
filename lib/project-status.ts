@@ -1,5 +1,6 @@
 import {
   differenceInCalendarDays,
+  differenceInMilliseconds,
   endOfMonth,
   format,
   isBefore,
@@ -19,6 +20,9 @@ const STAGE_SCORES: Record<StageStatus, number> = {
 const VALID_STAGE_STATUSES: readonly StageStatus[] = ["not_started", "in_progress", "completed"];
 
 type StageStateInput = Pick<Project, "syllable_status" | "chorus_status" | "verse_status">;
+type DueInput = Pick<Project, "due_at"> & {
+  due_time?: string | null;
+};
 
 export function getStageScore(status: string | null | undefined): number {
   return STAGE_SCORES[normalizeStageStatus(status)];
@@ -70,18 +74,17 @@ export function normalizeStageStatus(status: string | null | undefined): StageSt
 }
 
 export function deriveProjectStatus(
-  project: Pick<
-    Project,
-    "submission_done" | "due_at" | "overall_status" | "syllable_status" | "chorus_status" | "verse_status"
-  >
+  project: Pick<Project, "submission_done" | "due_at" | "overall_status" | "syllable_status" | "chorus_status" | "verse_status"> & {
+    due_time?: string | null;
+  }
 ): OverallStatus {
   if (project.submission_done) return "submitted";
   if (project.overall_status === "on_hold") return "on_hold";
 
-  const dueDate = parseISO(project.due_at);
-  const today = new Date();
+  const dueDate = getProjectDueDateTime(project);
+  const now = new Date();
 
-  if (isBefore(dueDate, today) && !isSameDay(dueDate, today)) {
+  if (project.due_time ? isBefore(dueDate, now) : isBefore(dueDate, now) && !isSameDay(dueDate, now)) {
     return "overdue";
   }
 
@@ -92,11 +95,14 @@ export function deriveProjectStatus(
   return hasProgress ? "in_progress" : "planned";
 }
 
-export function getDueBadgeLabel(dueAt: string, submissionDone: boolean) {
+export function getDueBadgeLabel(dueAt: string, submissionDone: boolean, dueTime?: string | null) {
   if (submissionDone) return "Submitted";
 
-  const dueDate = parseISO(dueAt);
-  const days = differenceInCalendarDays(dueDate, new Date());
+  const dueDate = getProjectDueDateTime({ due_at: dueAt, due_time: dueTime ?? null });
+  const now = new Date();
+  const days = differenceInCalendarDays(dueDate, now);
+
+  if (dueTime && isBefore(dueDate, now)) return "Overdue";
 
   if (days < 0) return `Overdue ${Math.abs(days)}d`;
   if (days === 0) return "Due today";
@@ -106,6 +112,32 @@ export function getDueBadgeLabel(dueAt: string, submissionDone: boolean) {
 export function formatDate(date: string | null) {
   if (!date) return "Not set";
   return format(parseISO(date), "MMM d, yyyy");
+}
+
+export function formatDueDateTime(project: DueInput) {
+  const dueDateTime = getProjectDueDateTime(project);
+  if (!project.due_time) return format(dueDateTime, "MMM d, yyyy");
+  return format(dueDateTime, "MMM d, yyyy, h:mm a");
+}
+
+export function formatDueCompact(project: DueInput) {
+  const dueDateTime = getProjectDueDateTime(project);
+  if (!project.due_time) return format(dueDateTime, "MMM d");
+  return format(dueDateTime, "MMM d, h:mm a");
+}
+
+export function getProjectDueDateTime(project: DueInput) {
+  const baseDate = parseISO(project.due_at);
+  if (!project.due_time) return baseDate;
+
+  const [hours, minutes] = project.due_time.split(":").map(Number);
+  const dueDateTime = new Date(baseDate);
+  dueDateTime.setHours(hours ?? 0, minutes ?? 0, 0, 0);
+  return dueDateTime;
+}
+
+export function compareProjectDeadlines(a: DueInput, b: DueInput) {
+  return differenceInMilliseconds(getProjectDueDateTime(a), getProjectDueDateTime(b));
 }
 
 export function getMonthWindow(date = new Date()) {

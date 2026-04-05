@@ -11,7 +11,7 @@ import { ProjectInlineEditor } from "@/components/projects/project-inline-editor
 import { RiskBadge } from "@/components/projects/status-badge";
 import { getDeadlineLabel } from "@/lib/project-insights";
 import { ProgressBar } from "@/components/projects/progress-bar";
-import { getProjectProgressState } from "@/lib/project-status";
+import { formatDueCompact, getProjectProgressState } from "@/lib/project-status";
 import type { ActivityMessage, Project, ProjectRisk } from "@/types/project";
 
 type DashboardData = {
@@ -84,6 +84,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                   <p className={`mt-1 text-sm font-medium ${heroTheme.textSecondary}`}>
                     {heroProject.artist || heroProject.client || "Independent project"}
                   </p>
+                  <p className={`mt-1 text-xs font-semibold ${heroTheme.textSecondary}`}>Due {formatDueCompact(heroProject)}</p>
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-bold ${heroTheme.statusPill}`}>
                   {heroProject.overall_status.replace("_", " ")}
@@ -199,6 +200,7 @@ function CompactProjectCard({ project }: { project: Project }) {
           <div className="min-w-0">
             <p className={`text-xs font-bold uppercase tracking-[0.14em] ${theme.eyebrow}`}>{getDeadlineLabel(localProject)}</p>
             <p className={`mt-2 truncate text-lg font-black tracking-[-0.03em] ${theme.textPrimary}`}>{localProject.title}</p>
+            <p className={`mt-1 text-xs font-semibold ${theme.textSecondary}`}>Due {formatDueCompact(localProject)}</p>
           </div>
           <span className={`rounded-full px-3 py-1 text-xs font-bold ${theme.statusPill}`}>{localProject.overall_status.replace("_", " ")}</span>
         </div>

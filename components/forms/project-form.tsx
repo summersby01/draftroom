@@ -107,7 +107,7 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
           <Field label="Client">
             <Input {...form.register("client")} placeholder="Blue House Publishing" />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Due date" error={form.formState.errors.due_at?.message}>
               <Input type="date" {...form.register("due_at")} />
             </Field>
@@ -213,7 +213,7 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="space-y-2 text-sm">
+    <label className="min-w-0 space-y-2 text-sm">
       <span className="font-semibold text-foreground">{label}</span>
       {children}
       {error ? <span className="text-xs text-danger">{error}</span> : null}

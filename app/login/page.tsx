@@ -67,6 +67,8 @@ export default async function LoginPage({
             <form action={signInWithGoogle}>
               <AuthSubmitButton label="Continue with Google" pendingLabel="Connecting to Google..." variant="outline" />
             </form>
+
+            <p className="text-sm text-ink/70">You can choose another Google account on the next step.</p>
           </CardContent>
         </Card>
       </div>

@@ -10,7 +10,7 @@ import { ProjectStatusBadge } from "@/components/projects/status-badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getArchiveActivityData, getArchiveData } from "@/lib/data/projects";
 import { formatDate, getProjectProgressState } from "@/lib/project-status";
-import { toKstYear } from "@/lib/timezone";
+import { getCurrentKstMonthKey, toKstYear } from "@/lib/timezone";
 import type { ArchiveActivityData, ProjectType } from "@/types/project";
 
 const TYPES: readonly ProjectType[] = ["lyrics", "adaptation", "ost", "idol", "topline", "other"];
@@ -22,7 +22,7 @@ export default async function ArchivePage({
 }) {
   const params = await searchParams;
   const tab = typeof params.tab === "string" && params.tab === "activity" ? "activity" : "projects";
-  const monthParam = typeof params.month === "string" ? params.month : format(new Date(), "yyyy-MM");
+  const monthParam = typeof params.month === "string" ? params.month : getCurrentKstMonthKey();
   const selectedDateParam = typeof params.selected === "string" ? params.selected : undefined;
 
   const { projects, stats } = await getArchiveData({
@@ -54,8 +54,8 @@ export default async function ArchivePage({
       />
 
       <div className="grid grid-cols-2 gap-2 rounded-[24px] border border-line bg-white p-1.5">
-        <ArchiveTab href={buildTabHref("projects", params)} label="Projects" active={tab === "projects"} />
-        <ArchiveTab href={buildTabHref("activity", params)} label="Activity" active={tab === "activity"} />
+        <ArchiveTab href={buildTabHref("projects", params, tab)} label="Projects" active={tab === "projects"} />
+        <ArchiveTab href={buildTabHref("activity", params, tab)} label="Activity" active={tab === "activity"} />
       </div>
 
       {tab === "projects" ? (
@@ -408,12 +408,21 @@ function buildActivityHref({
   return `?${next.toString()}` as Route;
 }
 
-function buildTabHref(tab: "projects" | "activity", params: Record<string, string | string[] | undefined>) {
+function buildTabHref(
+  tab: "projects" | "activity",
+  params: Record<string, string | string[] | undefined>,
+  currentTab: "projects" | "activity"
+) {
   const next = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
     if (typeof value !== "string") return;
     if (key === "tab") return;
+    if (key === "selected") return;
+    if (key === "month") {
+      const shouldPreserveMonth = currentTab === "activity" && tab === "activity" && /^\d{4}-\d{2}$/.test(value);
+      if (!shouldPreserveMonth) return;
+    }
     next.set(key, value);
   });
 

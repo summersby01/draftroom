@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { deriveProjectStatus } from "@/lib/project-status";
 import { projectSchema, type ProjectFormValues } from "@/lib/validators/project";
 import type { Database } from "@/types/database";
-import type { OverallStatus, Project, ProjectHistoryActionType, StageStatus } from "@/types/project";
+import type { OverallStatus, Project, ProjectHistoryActionType, StageStatus, SubmissionStatus } from "@/types/project";
 
 type ProjectInsert = Database["public"]["Tables"]["projects"]["Insert"];
 type ProjectUpdate = Database["public"]["Tables"]["projects"]["Update"];
@@ -16,6 +16,9 @@ type InlineProjectUpdate = {
   chorus_status?: StageStatus;
   verse_status?: StageStatus;
   submission_done?: boolean;
+  submission_status?: SubmissionStatus;
+  is_portfolio?: boolean;
+  portfolio_note?: string | null;
   overall_status?: OverallStatus;
 };
 
@@ -77,7 +80,7 @@ export async function updateProject(id: string, values: ProjectFormValues) {
   const payload: ProjectUpdate = {
     ...parsed,
     received_at: parsed.received_at ?? existing.received_at,
-    submitted_at: parsed.submission_done ? existing.submitted_at ?? getCurrentUtcTimestamp() : null,
+    ...normalizeSubmissionFields(parsed, existing),
     overall_status: nextOverallStatus
   };
 
@@ -103,7 +106,7 @@ export async function updateProjectInline(id: string, patch: InlineProjectUpdate
   };
 
   if (typeof patch.submission_done === "boolean") {
-    payload.submitted_at = patch.submission_done ? existing.submitted_at ?? getCurrentUtcTimestamp() : null;
+    Object.assign(payload, normalizeSubmissionFields(nextProject, existing));
     payload.overall_status = patch.submission_done
       ? "submitted"
       : deriveProjectStatus({
@@ -119,8 +122,12 @@ export async function updateProjectInline(id: string, patch: InlineProjectUpdate
     patch.syllable_status ||
     patch.chorus_status ||
     patch.verse_status ||
-    patch.overall_status
+    patch.overall_status ||
+    patch.submission_status ||
+    typeof patch.is_portfolio === "boolean" ||
+    patch.portfolio_note !== undefined
   ) {
+    Object.assign(payload, normalizeSubmissionFields(nextProject, existing));
     payload.overall_status = deriveProjectStatus({
       submission_done: nextProject.submission_done,
       due_at: nextProject.due_at,
@@ -162,7 +169,13 @@ export async function toggleSubmission(id: string, submissionDone: boolean) {
   const existing = await getExistingProject(supabase, id);
   const payload: ProjectUpdate = {
     submission_done: submissionDone,
-    submitted_at: submissionDone ? existing.submitted_at ?? getCurrentUtcTimestamp() : null,
+    ...normalizeSubmissionFields(
+      {
+        ...existing,
+        submission_done: submissionDone
+      },
+      existing
+    ),
     overall_status: submissionDone
       ? "submitted"
       : deriveProjectStatus({
@@ -248,11 +261,13 @@ function buildProjectHistoryEntries(existing: Project, next: ProjectFormValues, 
     });
   };
 
-  const generalFields: (keyof Pick<ProjectFormValues, "title" | "artist" | "client" | "project_type">)[] = [
+  const generalFields: (keyof Pick<ProjectFormValues, "title" | "artist" | "client" | "project_type" | "submission_status" | "portfolio_note">)[] = [
     "title",
     "artist",
     "client",
-    "project_type"
+    "project_type",
+    "submission_status",
+    "portfolio_note"
   ];
 
   generalFields.forEach((field) => {
@@ -281,6 +296,10 @@ function buildProjectHistoryEntries(existing: Project, next: ProjectFormValues, 
     push("note_updated", "notes", normalizeValue(existing.notes), normalizeValue(next.notes));
   }
 
+  if (existing.is_portfolio !== next.is_portfolio) {
+    push("project_updated", "is_portfolio", String(existing.is_portfolio), String(next.is_portfolio));
+  }
+
   if (existing.submission_done !== next.submission_done) {
     push(
       next.submission_done ? "submission_marked" : "submission_unmarked",
@@ -306,6 +325,9 @@ function sanitizeInlinePatch(patch: InlineProjectUpdate): InlineProjectUpdate {
   if (patch.chorus_status) next.chorus_status = patch.chorus_status;
   if (patch.verse_status) next.verse_status = patch.verse_status;
   if (typeof patch.submission_done === "boolean") next.submission_done = patch.submission_done;
+  if (patch.submission_status) next.submission_status = patch.submission_status;
+  if (typeof patch.is_portfolio === "boolean") next.is_portfolio = patch.is_portfolio;
+  if (patch.portfolio_note !== undefined) next.portfolio_note = patch.portfolio_note;
   if (patch.overall_status) next.overall_status = patch.overall_status;
 
   return next;
@@ -321,6 +343,10 @@ function projectToFormValues(project: Project): ProjectFormValues {
     due_at: project.due_at,
     due_time: project.due_time,
     submission_done: project.submission_done,
+    submission_status: project.submission_status,
+    is_portfolio: project.is_portfolio,
+    accepted_at: project.accepted_at,
+    portfolio_note: project.portfolio_note,
     overall_status: project.overall_status,
     syllable_status: project.syllable_status,
     chorus_status: project.chorus_status,
@@ -330,7 +356,6 @@ function projectToFormValues(project: Project): ProjectFormValues {
 }
 
 function normalizeProjectInsertPayload(values: ProjectFormValues, userId: string): ProjectInsert {
-  const submittedAt = values.submission_done ? getCurrentUtcTimestamp() : null;
   const overallStatus = values.submission_done
     ? "submitted"
     : deriveProjectStatus({
@@ -351,8 +376,8 @@ function normalizeProjectInsertPayload(values: ProjectFormValues, userId: string
     received_at: normalizeDateString(values.received_at) ?? new Date().toISOString().slice(0, 10),
     due_at: normalizeRequiredDateString(values.due_at),
     due_time: normalizeTimeString(values.due_time),
-    submitted_at: submittedAt,
     submission_done: values.submission_done,
+    ...normalizeSubmissionFields(values),
     overall_status: overallStatus,
     syllable_status: values.syllable_status,
     chorus_status: values.chorus_status,
@@ -389,6 +414,33 @@ function normalizeTimeString(value: string | null | undefined) {
   if (value === undefined || value === null || value === "") return null;
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
+}
+
+function normalizeSubmissionFields(
+  values: Pick<ProjectFormValues, "submission_done" | "submission_status" | "is_portfolio" | "portfolio_note">,
+  existing?: Pick<Project, "submitted_at" | "accepted_at">
+) {
+  if (!values.submission_done) {
+    return {
+      submitted_at: null,
+      submission_status: "pending" as const,
+      is_portfolio: false,
+      accepted_at: null,
+      portfolio_note: null
+    };
+  }
+
+  const submissionStatus = values.submission_status ?? "pending";
+  const isAccepted = submissionStatus === "accepted";
+  const isPortfolio = isAccepted ? Boolean(values.is_portfolio) : false;
+
+  return {
+    submitted_at: existing?.submitted_at ?? getCurrentUtcTimestamp(),
+    submission_status: submissionStatus,
+    is_portfolio: isPortfolio,
+    accepted_at: isAccepted ? existing?.accepted_at ?? getCurrentUtcTimestamp() : null,
+    portfolio_note: isPortfolio ? normalizeNullableText(values.portfolio_note) : null
+  };
 }
 
 function isMissingProjectHistoryTableError(error: { message?: string; code?: string } | null) {

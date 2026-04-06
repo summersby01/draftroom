@@ -45,15 +45,17 @@ export function ProjectFilters({ archive = false }: { archive?: boolean }) {
         onChange={(event) => update("type", event.target.value)}
         options={[{ value: "all", label: "All types" }, ...PROJECT_TYPE_OPTIONS]}
       />
-      <Select
-        defaultValue={searchParams.get("submitted") ?? (archive ? "yes" : "all")}
-        onChange={(event) => update("submitted", event.target.value)}
-        options={[
-          { value: "all", label: "All submission states" },
-          { value: "yes", label: "Submitted" },
-          { value: "no", label: "Not submitted" }
-        ]}
-      />
+      {!archive ? (
+        <Select
+          defaultValue={searchParams.get("submitted") ?? "all"}
+          onChange={(event) => update("submitted", event.target.value)}
+          options={[
+            { value: "all", label: "All submission states" },
+            { value: "yes", label: "Submitted" },
+            { value: "no", label: "Not submitted" }
+          ]}
+        />
+      ) : null}
       {archive ? (
         <Input
           defaultValue={searchParams.get("year") ?? ""}

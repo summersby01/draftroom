@@ -12,6 +12,7 @@ export type ProjectType =
   | "idol"
   | "topline"
   | "other";
+export type SubmissionStatus = "pending" | "accepted" | "rejected";
 export type DeadlineRiskType = "overdue" | "due_today" | "due_soon" | "at_risk" | "collision";
 export type ProjectHistoryActionType =
   | "project_created"
@@ -33,6 +34,10 @@ export interface Project {
   due_at: string;
   due_time: string | null;
   submitted_at: string | null;
+  submission_status: SubmissionStatus;
+  is_portfolio: boolean;
+  accepted_at: string | null;
+  portfolio_note: string | null;
   overall_status: OverallStatus;
   submission_done: boolean;
   syllable_status: StageStatus;
@@ -81,6 +86,9 @@ export interface ArchiveStats {
   totalSubmitted: number;
   submittedThisYear: number;
   averageCompletionDays: number;
+  acceptedCount: number;
+  acceptanceRate: number;
+  portfolioCount: number;
 }
 
 export interface ArchiveActivityDay {
@@ -149,6 +157,7 @@ export interface ProjectFilters {
   status?: OverallStatus | "all";
   type?: ProjectType | "all";
   submitted?: "all" | "yes" | "no";
+  submissionStatus?: SubmissionStatus | "all";
   sort?: "due_at" | "received_at" | "updated_at" | "created_at" | "progress_percent";
   direction?: "asc" | "desc";
   year?: string;

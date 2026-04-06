@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { CheckCircle2 } from "lucide-react";
 import { differenceInCalendarDays } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -9,18 +8,9 @@ import { ProjectsQuickFilters } from "@/components/projects/projects-quick-filte
 import { Card, CardContent } from "@/components/ui/card";
 import { getProjects } from "@/lib/data/projects";
 import { getProjectDueDateTime } from "@/lib/project-status";
-import type { OverallStatus, Project, ProjectFilters as ProjectFilterValues, ProjectType } from "@/types/project";
+import type { Project, ProjectType } from "@/types/project";
 
-const STATUSES: readonly OverallStatus[] = ["planned", "in_progress", "submitted", "on_hold", "overdue"];
 const TYPES: readonly ProjectType[] = ["lyrics", "adaptation", "ost", "idol", "topline", "other"];
-const SUBMITTED_OPTIONS: readonly NonNullable<ProjectFilterValues["submitted"]>[] = ["all", "yes", "no"];
-const SORT_OPTIONS: readonly NonNullable<ProjectFilterValues["sort"]>[] = [
-  "due_at",
-  "received_at",
-  "updated_at",
-  "created_at",
-  "progress_percent"
-];
 
 export default async function ProjectsPage({
   searchParams
@@ -30,51 +20,36 @@ export default async function ProjectsPage({
   const params = await searchParams;
   const view = typeof params.view === "string" ? params.view : "all";
 
-  const projects = await getProjects({
-    query: typeof params.query === "string" ? params.query : undefined,
-    status:
-      typeof params.status === "string" && STATUSES.includes(params.status as OverallStatus)
-        ? (params.status as OverallStatus)
-        : "all",
-    type:
-      typeof params.type === "string" && TYPES.includes(params.type as ProjectType)
-        ? (params.type as ProjectType)
-        : "all",
-    submitted:
-      typeof params.submitted === "string" &&
-      SUBMITTED_OPTIONS.includes(params.submitted as NonNullable<ProjectFilterValues["submitted"]>)
-        ? (params.submitted as NonNullable<ProjectFilterValues["submitted"]>)
-        : "all",
-    sort:
-      typeof params.sort === "string" && SORT_OPTIONS.includes(params.sort as NonNullable<ProjectFilterValues["sort"]>)
-        ? (params.sort as NonNullable<ProjectFilterValues["sort"]>)
-        : "due_at"
-  });
-
-  const activeProjects = sortActiveProjects(projects.filter((project) => project.overall_status !== "submitted"));
-  const submittedProjects = [...projects.filter((project) => project.overall_status === "submitted")].sort(
-    (a, b) => new Date(b.submitted_at ?? 0).getTime() - new Date(a.submitted_at ?? 0).getTime()
+  const activeProjects = sortActiveProjects(
+    await getProjects({
+      query: typeof params.query === "string" ? params.query : undefined,
+      type:
+        typeof params.type === "string" && TYPES.includes(params.type as ProjectType)
+          ? (params.type as ProjectType)
+          : "all",
+      submitted: "no",
+      sort: "due_at"
+    })
   );
-  const dueSoonProjects = activeProjects.filter((project) => {
-    const days = differenceInCalendarDays(getProjectDueDateTime(project), new Date());
-    return days >= 0 && days <= 3;
-  });
 
   const visibleProjects =
-    view === "active"
-      ? activeProjects
+    view === "overdue"
+      ? activeProjects.filter((project) => project.overall_status === "overdue")
       : view === "due_soon"
-        ? dueSoonProjects
-        : view === "submitted"
-          ? submittedProjects
-          : [...activeProjects.slice(0, 8), ...submittedProjects.slice(0, 5)];
+        ? activeProjects.filter((project) => {
+            const days = differenceInCalendarDays(getProjectDueDateTime(project), new Date());
+            return days >= 0 && days <= 3;
+          })
+        : view === "in_progress"
+          ? activeProjects.filter((project) => project.overall_status === "in_progress")
+          : activeProjects;
 
   return (
     <div className="space-y-4">
       <div className="space-y-3">
         <div className="space-y-1">
           <h1 className="text-[2rem] font-black tracking-[-0.04em] text-ink">Projects</h1>
-          <p className="text-sm text-ink-soft">Filter what matters, then move straight through the list.</p>
+          <p className="text-sm text-ink-soft">Active work only. Keep deadlines moving and archive finished songs separately.</p>
         </div>
         <Button asChild className="min-h-12 w-full text-base font-bold">
           <Link href={"/projects/new" as Route}>New Project</Link>
@@ -85,22 +60,20 @@ export default async function ProjectsPage({
 
       {visibleProjects.length ? (
         <div className="space-y-3">
-          {visibleProjects.map((project) =>
-            project.overall_status === "submitted" ? (
-              <SubmittedProjectCard key={project.id} project={project} />
-            ) : (
-              <ProjectCard key={project.id} project={project} activeProjects={activeProjects} />
-            )
-          )}
+          {visibleProjects.map((project) => (
+            <ProjectCard key={project.id} project={project} activeProjects={activeProjects} />
+          ))}
         </div>
       ) : (
         <EmptyState
           message={
-            view === "submitted"
-              ? "No submitted projects yet."
+            view === "overdue"
+              ? "No overdue projects."
               : view === "due_soon"
                 ? "No projects are due soon."
-                : "No projects match the current filters."
+                : view === "in_progress"
+                  ? "No projects are currently in progress."
+                  : "No active projects match the current filters."
           }
         />
       )}
@@ -121,38 +94,6 @@ function sortActiveProjects(projects: Project[]) {
   });
 }
 
-function SubmittedProjectCard({ project }: { project: Project }) {
-  return (
-    <Link href={`/projects/${project.id}` as Route}>
-      <Card className="rounded-[28px] border border-line bg-white shadow-none transition duration-150 hover:border-blue-muted">
-        <CardContent className="flex items-start justify-between gap-4 p-5">
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold tracking-tight text-ink">{project.title}</p>
-            <p className="mt-1 truncate text-sm text-ink-soft">
-              {[project.artist, project.client].filter(Boolean).join(" • ") || "Independent project"}
-            </p>
-            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-ink-soft">
-              Submitted {project.submitted_at ? formatSubmittedDate(project.submitted_at) : "recently"}
-            </p>
-          </div>
-          <div className="shrink-0 rounded-full bg-surface-soft p-2">
-            <CheckCircle2 className="h-5 w-5 text-deep-blue" />
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}
-
-function formatSubmittedDate(value: string) {
-  const date = new Date(value);
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Seoul",
-    month: "short",
-    day: "numeric"
-  }).format(date);
-}
-
 function EmptyState({ message }: { message: string }) {
   return (
     <Card>
@@ -160,4 +101,3 @@ function EmptyState({ message }: { message: string }) {
     </Card>
   );
 }
-

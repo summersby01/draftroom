@@ -106,13 +106,17 @@ export function getArchiveStats(submittedProjects: Project[], now = new Date()):
   const completionDurations = submittedProjects
     .filter((project) => project.submitted_at)
     .map((project) => differenceInDays(parseISO(project.submitted_at as string), parseISO(project.received_at)));
+  const acceptedCount = submittedProjects.filter((project) => project.submission_status === "accepted").length;
 
   return {
     totalSubmitted: submittedProjects.length,
     submittedThisYear: submittedProjects.filter((project) => project.submitted_at?.startsWith(year)).length,
     averageCompletionDays: completionDurations.length
       ? Math.round(completionDurations.reduce((sum, value) => sum + value, 0) / completionDurations.length)
-      : 0
+      : 0,
+    acceptedCount,
+    acceptanceRate: submittedProjects.length ? Math.round((acceptedCount / submittedProjects.length) * 100) : 0,
+    portfolioCount: submittedProjects.filter((project) => project.is_portfolio && project.submission_status === "accepted").length
   };
 }
 

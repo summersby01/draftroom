@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getProjectById, getProjectHistory, getProjects } from "@/lib/data/projects";
 import { formatHistoryMessage, getDeadlineLabel, getProjectRisks } from "@/lib/project-insights";
 import { formatDate, formatDueDateTime, getProjectProgressState, normalizeStageStatus } from "@/lib/project-status";
+import type { SubmissionStatus } from "@/types/project";
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -70,6 +71,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <MetaRow label="Artist" value={project.artist || "Not set"} />
           <MetaRow label="Client" value={project.client || "Not set"} />
           <MetaRow label="Submitted" value={formatDate(project.submitted_at)} />
+          <MetaRow label="Submission result" value={getSubmissionStatusLabel(project.submission_status)} />
+          <MetaRow label="Accepted" value={formatDate(project.accepted_at)} />
+          <MetaRow label="Portfolio" value={project.is_portfolio ? "Included" : "Not included"} />
         </CardContent>
       </Card>
 
@@ -122,4 +126,10 @@ function StageRow({ label, status }: { label: string; status: "not_started" | "i
 function getTileColor(index: number) {
   const tones = ["bg-note-blue", "bg-note-yellow", "bg-note-green", "bg-note-purple", "bg-note-coral"] as const;
   return tones[index % tones.length];
+}
+
+function getSubmissionStatusLabel(status: SubmissionStatus) {
+  if (status === "accepted") return "Accepted";
+  if (status === "rejected") return "Not selected";
+  return "Awaiting result";
 }

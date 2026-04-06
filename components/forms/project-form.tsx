@@ -34,6 +34,10 @@ const DEFAULT_VALUES: ProjectFormValues = {
   due_at: new Date().toISOString().slice(0, 10),
   due_time: undefined,
   submission_done: false,
+  submission_status: "pending",
+  is_portfolio: false,
+  accepted_at: null,
+  portfolio_note: "",
   overall_status: "planned",
   syllable_status: "not_started",
   chorus_status: "not_started",
@@ -57,6 +61,10 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
           due_at: project.due_at,
           due_time: project.due_time ?? undefined,
           submission_done: project.submission_done,
+          submission_status: project.submission_status,
+          is_portfolio: project.is_portfolio,
+          accepted_at: project.accepted_at,
+          portfolio_note: project.portfolio_note ?? "",
           overall_status: project.overall_status,
           syllable_status: project.syllable_status,
           chorus_status: project.chorus_status,
@@ -153,6 +161,48 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
               Mark submission complete
             </label>
           </Field>
+          {project || detailMode ? (
+            <>
+              <Field label="Submission result">
+                <Select
+                  options={[
+                    { value: "pending", label: "Pending" },
+                    { value: "accepted", label: "Accepted" },
+                    { value: "rejected", label: "Not selected" }
+                  ]}
+                  {...form.register("submission_status")}
+                  disabled={!values.submission_done}
+                />
+                {!values.submission_done ? (
+                  <p className="text-xs text-ink-soft">Available after the project has been submitted.</p>
+                ) : null}
+              </Field>
+
+              <Field label="Portfolio">
+                <label className="flex min-h-12 items-center gap-3 rounded-2xl bg-white px-4 text-sm font-medium text-ink">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-brand-600"
+                    {...form.register("is_portfolio")}
+                    disabled={!values.submission_done || values.submission_status !== "accepted"}
+                  />
+                  Add to portfolio
+                </label>
+                {values.submission_status !== "accepted" ? (
+                  <p className="text-xs text-ink-soft">Only accepted projects can be added to Portfolio.</p>
+                ) : null}
+              </Field>
+
+              {values.submission_done && values.submission_status === "accepted" && values.is_portfolio ? (
+                <Field label="Portfolio note">
+                  <Textarea
+                    {...form.register("portfolio_note")}
+                    placeholder="Why this piece belongs in your portfolio, standout details, or reference notes..."
+                  />
+                </Field>
+              ) : null}
+            </>
+          ) : null}
         </CardContent>
       </Card>
 

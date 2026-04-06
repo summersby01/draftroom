@@ -5,11 +5,12 @@ import { Check } from "lucide-react";
 
 import { SummaryCard } from "@/components/dashboard/summary-card";
 import { PageHeader } from "@/components/layout/page-header";
+import { ArchiveProjectList } from "@/components/archive/archive-project-list";
+import { PortfolioProjectList } from "@/components/archive/portfolio-project-list";
 import { ProjectFilters } from "@/components/projects/project-filters";
-import { ProjectStatusBadge } from "@/components/projects/status-badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { getArchiveActivityData, getArchiveData } from "@/lib/data/projects";
-import { formatDate, getProjectProgressState } from "@/lib/project-status";
+import { getArchiveActivityData, getArchiveData, getPortfolioData } from "@/lib/data/projects";
+import { formatDate } from "@/lib/project-status";
 import { getCurrentKstMonthKey, toKstYear } from "@/lib/timezone";
 import type { ArchiveActivityData, ProjectType } from "@/types/project";
 
@@ -21,22 +22,27 @@ export default async function ArchivePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const tab = typeof params.tab === "string" && params.tab === "activity" ? "activity" : "projects";
+  const tab =
+    typeof params.tab === "string" && ["projects", "activity", "portfolio"].includes(params.tab)
+      ? (params.tab as "projects" | "activity" | "portfolio")
+      : "projects";
   const monthParam = typeof params.month === "string" ? params.month : getCurrentKstMonthKey();
   const selectedDateParam = typeof params.selected === "string" ? params.selected : undefined;
 
-  const { projects, stats } = await getArchiveData({
-    query: typeof params.query === "string" ? params.query : undefined,
-    type:
-      typeof params.type === "string" && TYPES.includes(params.type as ProjectType)
-        ? (params.type as ProjectType)
-        : "all",
-    year: typeof params.year === "string" ? params.year : undefined,
-    sort: "created_at",
-    direction: "desc"
-  });
-
-  const activity = await getArchiveActivityData(monthParam);
+  const [{ projects, stats }, activity, portfolio] = await Promise.all([
+    getArchiveData({
+      query: typeof params.query === "string" ? params.query : undefined,
+      type:
+        typeof params.type === "string" && TYPES.includes(params.type as ProjectType)
+          ? (params.type as ProjectType)
+          : "all",
+      year: typeof params.year === "string" ? params.year : undefined,
+      sort: "created_at",
+      direction: "desc"
+    }),
+    getArchiveActivityData(monthParam),
+    getPortfolioData()
+  ]);
 
   const grouped = Object.entries(
     projects.reduce<Record<string, typeof projects>>((acc, project) => {
@@ -53,9 +59,10 @@ export default async function ArchivePage({
         description="Completed songs and delivered lyric projects, plus a record of how the work stacked up over time."
       />
 
-      <div className="grid grid-cols-2 gap-2 rounded-[24px] border border-line bg-white p-1.5">
+      <div className="grid grid-cols-3 gap-2 rounded-[24px] border border-line bg-white p-1.5">
         <ArchiveTab href={buildTabHref("projects", params, tab)} label="Projects" active={tab === "projects"} />
         <ArchiveTab href={buildTabHref("activity", params, tab)} label="Activity" active={tab === "activity"} />
+        <ArchiveTab href={buildTabHref("portfolio", params, tab)} label="Portfolio" active={tab === "portfolio"} />
       </div>
 
       {tab === "projects" ? (
@@ -65,56 +72,25 @@ export default async function ArchivePage({
               <SummaryCard label="Total submitted" value={stats.totalSubmitted} hint="Projects stored in your finished catalog" tone="bg-white border-l-[6px] border-l-deep-blue" />
               <SummaryCard label="Submitted this year" value={stats.submittedThisYear} hint="Completed projects in the current year" tone="bg-white border-l-[6px] border-l-blue-muted" />
               <SummaryCard label="Average completion" value={`${stats.averageCompletionDays}d`} hint="Average days from received to submitted" tone="bg-white border-l-[6px] border-l-action" />
+              <SummaryCard label="Accepted" value={stats.acceptedCount} hint={`${stats.acceptanceRate}% acceptance rate`} tone="bg-white border-l-[6px] border-l-success" />
             </div>
           </section>
           <ProjectFilters archive />
-          {grouped.length ? (
-            <div className="space-y-4">
-              {grouped.map(([year, items]) => (
-                <Card key={year}>
-                  <CardHeader className="pb-3">
-                    <h2 className="text-lg font-bold tracking-tight text-ink">{year}</h2>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {items.map((project) => {
-                      const progressState = getProjectProgressState(project);
-
-                      return (
-                        <div
-                          key={project.id}
-                          className="rounded-[24px] border border-line bg-surface-soft p-4 transition duration-150 hover:translate-y-[-1px] hover:shadow-panel"
-                        >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0">
-                            <p className="truncate text-base font-bold tracking-tight text-ink">{project.title}</p>
-                            <p className="mt-1 text-sm text-ink-soft">
-                              {[project.artist, project.client].filter(Boolean).join(" • ") || "Independent project"}
-                            </p>
-                          </div>
-                          <ProjectStatusBadge status={project.overall_status} />
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2 text-sm">
-                          <div className="rounded-full bg-white px-3 py-1.5 text-ink-soft">Submitted {formatDate(project.submitted_at)}</div>
-                          <div className="rounded-full bg-white px-3 py-1.5 text-ink-soft">{project.project_type}</div>
-                          <div className="rounded-full bg-white px-3 py-1.5 text-ink-soft">{progressState.progressPercent}% complete</div>
-                        </div>
-                        </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-6 text-center text-sm text-ink-soft">
-                No submitted projects match the current archive filters.
-              </CardContent>
-            </Card>
-          )}
+          <ArchiveProjectList groupedProjects={grouped} />
         </>
-      ) : (
+      ) : tab === "activity" ? (
         <ArchiveActivityView activity={activity} selectedDateParam={selectedDateParam} />
+      ) : (
+        <div className="space-y-5">
+          <section className="-mx-4 overflow-x-auto px-4">
+            <div className="flex gap-3 pb-1">
+              <SummaryCard label="Portfolio count" value={portfolio.projects.length} hint="Accepted projects collected into your showcase" tone="bg-white border-l-[6px] border-l-deep-blue" />
+              <SummaryCard label="Accepted total" value={portfolio.stats.acceptedCount} hint="All accepted submissions in your archive" tone="bg-white border-l-[6px] border-l-success" />
+              <SummaryCard label="Acceptance rate" value={`${portfolio.stats.acceptanceRate}%`} hint="Accepted submissions across your archive" tone="bg-white border-l-[6px] border-l-action" />
+            </div>
+          </section>
+          <PortfolioProjectList projects={portfolio.projects} />
+        </div>
       )}
     </div>
   );
@@ -409,9 +385,9 @@ function buildActivityHref({
 }
 
 function buildTabHref(
-  tab: "projects" | "activity",
+  tab: "projects" | "activity" | "portfolio",
   params: Record<string, string | string[] | undefined>,
-  currentTab: "projects" | "activity"
+  currentTab: "projects" | "activity" | "portfolio"
 ) {
   const next = new URLSearchParams();
 

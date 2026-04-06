@@ -46,6 +46,10 @@ export async function getProjects(filters: ProjectFilters = {}) {
     query = query.eq("project_type", filters.type);
   }
 
+  if (filters.submissionStatus && filters.submissionStatus !== "all") {
+    query = query.eq("submission_status", filters.submissionStatus);
+  }
+
   if (filters.year) {
     query = query
       .gte("submitted_at", `${filters.year}-01-01T00:00:00.000Z`)
@@ -195,6 +199,24 @@ export async function getArchiveData(filters: ProjectFilters = {}) {
 
   return {
     projects: repairedProjects,
+    stats: getArchiveStats(repairedProjects)
+  };
+}
+
+export async function getPortfolioData() {
+  const { supabase } = await getAuthedSupabase();
+  const projects = await getProjects({
+    submitted: "yes",
+    archivedOnly: true,
+    submissionStatus: "accepted",
+    sort: "updated_at",
+    direction: "desc"
+  });
+  const repairedProjects = await repairSubmittedProjects(supabase, projects);
+  const portfolioProjects = repairedProjects.filter((project) => project.is_portfolio && project.submission_status === "accepted");
+
+  return {
+    projects: portfolioProjects,
     stats: getArchiveStats(repairedProjects)
   };
 }

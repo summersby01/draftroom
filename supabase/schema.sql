@@ -19,6 +19,12 @@ exception
 end $$;
 
 do $$ begin
+  create type public.submission_status as enum ('pending', 'accepted', 'rejected');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$ begin
   create type public.project_history_action_type as enum (
     'project_created',
     'project_updated',
@@ -43,6 +49,10 @@ create table if not exists public.projects (
   due_at date not null,
   due_time time,
   submitted_at timestamptz,
+  submission_status public.submission_status not null default 'pending',
+  is_portfolio boolean not null default false,
+  accepted_at timestamptz,
+  portfolio_note text,
   overall_status public.overall_status not null default 'planned',
   submission_done boolean not null default false,
   syllable_status public.stage_status not null default 'not_started',
@@ -83,6 +93,18 @@ alter column received_at set default current_date;
 
 alter table public.projects
 add column if not exists due_time time;
+
+alter table public.projects
+add column if not exists submission_status public.submission_status not null default 'pending';
+
+alter table public.projects
+add column if not exists is_portfolio boolean not null default false;
+
+alter table public.projects
+add column if not exists accepted_at timestamptz;
+
+alter table public.projects
+add column if not exists portfolio_note text;
 
 create or replace function public.calculate_project_progress(
   syllable public.stage_status,
@@ -156,8 +178,31 @@ begin
 
   if new.submission_done and new.submitted_at is null then
     new.submitted_at := timezone('utc', now());
+    if new.submission_status is null then
+      new.submission_status := 'pending';
+    end if;
   elsif not new.submission_done then
     new.submitted_at := null;
+    new.submission_status := 'pending';
+    new.is_portfolio := false;
+    new.accepted_at := null;
+    new.portfolio_note := null;
+  end if;
+
+  if new.submission_status = 'accepted' then
+    if new.accepted_at is null then
+      new.accepted_at := timezone('utc', now());
+    end if;
+  else
+    new.accepted_at := null;
+  end if;
+
+  if new.submission_status <> 'accepted' then
+    new.is_portfolio := false;
+  end if;
+
+  if not new.is_portfolio then
+    new.portfolio_note := null;
   end if;
 
   new.updated_at := timezone('utc', now());

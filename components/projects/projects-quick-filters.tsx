@@ -10,9 +10,9 @@ import { PROJECT_TYPE_OPTIONS } from "@/lib/constants";
 
 const CHIP_OPTIONS = [
   { value: "all", label: "All" },
-  { value: "active", label: "Active" },
+  { value: "overdue", label: "Overdue" },
   { value: "due_soon", label: "Due soon" },
-  { value: "submitted", label: "Submitted" }
+  { value: "in_progress", label: "In progress" }
 ] as const;
 
 export function ProjectsQuickFilters() {

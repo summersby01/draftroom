@@ -249,6 +249,20 @@ export async function getArchiveActivityData(month?: string) {
   });
   const allSubmittedProjects = dedupeProjectsById([...submittedProjects, ...repairedBrokenProjects]);
 
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[Archive Activity] month query", {
+      monthKey,
+      start,
+      endExclusive,
+      returnedRows: allSubmittedProjects.map((project) => ({
+        id: project.id,
+        title: project.title,
+        submission_done: project.submission_done,
+        submitted_at: project.submitted_at
+      }))
+    });
+  }
+
   const projectIds = Array.from(
     new Set([...allSubmittedProjects.map((project) => project.id), ...historyEntries.map((entry) => entry.project_id)])
   );

@@ -166,6 +166,19 @@ export function buildArchiveActivityData({
     submittedProjectsByDate.set(key, items);
   });
 
+  if (process.env.NODE_ENV !== "production") {
+    console.info(
+      "[Archive Activity] submitted projects",
+      submittedProjects.map((project) => ({
+        id: project.id,
+        title: project.title,
+        submission_done: project.submission_done,
+        submitted_at: project.submitted_at,
+        submitted_kst_date: project.submitted_at ? toKstDateKey(project.submitted_at) : null
+      }))
+    );
+  }
+
   const progressByDate = new Map<string, number>();
   const changeCountByDate = new Map<string, number>();
   const progressChangesByDate = new Map<
@@ -210,7 +223,7 @@ export function buildArchiveActivityData({
     start: calendarStart,
     end: calendarEnd
   }).map((date) => {
-    const key = format(date, "yyyy-MM-dd");
+    const key = toKstDateKey(date);
     return {
       date: key,
       dayOfMonth: Number(format(date, "d")),
@@ -223,6 +236,17 @@ export function buildArchiveActivityData({
       progressChanges: progressChangesByDate.get(key) ?? []
     };
   });
+
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[Archive Activity] submittedByDate", Object.fromEntries(submittedByDate));
+    console.info(
+      "[Archive Activity] calendar day keys",
+      days.filter((day) => day.isCurrentMonth).map((day) => ({
+        date: day.date,
+        submittedCount: day.submittedCount
+      }))
+    );
+  }
 
   const submissionsThisMonth = submittedProjects.length;
   const currentMonthDays = days.filter((day) => day.isCurrentMonth);

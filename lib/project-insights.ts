@@ -106,7 +106,7 @@ export function getArchiveStats(submittedProjects: Project[], now = new Date()):
   const completionDurations = submittedProjects
     .filter((project) => project.submitted_at)
     .map((project) => differenceInDays(parseISO(project.submitted_at as string), parseISO(project.received_at)));
-  const acceptedCount = submittedProjects.filter((project) => project.submission_status === "accepted").length;
+  const acceptedCount = submittedProjects.filter((project) => project.is_accepted).length;
 
   return {
     totalSubmitted: submittedProjects.length,
@@ -116,7 +116,7 @@ export function getArchiveStats(submittedProjects: Project[], now = new Date()):
       : 0,
     acceptedCount,
     acceptanceRate: submittedProjects.length ? Math.round((acceptedCount / submittedProjects.length) * 100) : 0,
-    portfolioCount: submittedProjects.filter((project) => project.is_portfolio && project.submission_status === "accepted").length
+    portfolioCount: submittedProjects.filter((project) => project.is_portfolio && project.is_accepted).length
   };
 }
 

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { deriveProjectStatus } from "@/lib/project-status";
 import { projectSchema, type ProjectFormValues } from "@/lib/validators/project";
 import type { Database } from "@/types/database";
-import type { OverallStatus, Project, ProjectHistoryActionType, StageStatus, SubmissionStatus } from "@/types/project";
+import type { OverallStatus, Project, ProjectHistoryActionType, StageStatus } from "@/types/project";
 
 type ProjectInsert = Database["public"]["Tables"]["projects"]["Insert"];
 type ProjectUpdate = Database["public"]["Tables"]["projects"]["Update"];
@@ -16,7 +16,7 @@ type InlineProjectUpdate = {
   chorus_status?: StageStatus;
   verse_status?: StageStatus;
   submission_done?: boolean;
-  submission_status?: SubmissionStatus;
+  is_accepted?: boolean;
   is_portfolio?: boolean;
   portfolio_note?: string | null;
   overall_status?: OverallStatus;
@@ -123,7 +123,7 @@ export async function updateProjectInline(id: string, patch: InlineProjectUpdate
     patch.chorus_status ||
     patch.verse_status ||
     patch.overall_status ||
-    patch.submission_status ||
+    typeof patch.is_accepted === "boolean" ||
     typeof patch.is_portfolio === "boolean" ||
     patch.portfolio_note !== undefined
   ) {
@@ -261,12 +261,11 @@ function buildProjectHistoryEntries(existing: Project, next: ProjectFormValues, 
     });
   };
 
-  const generalFields: (keyof Pick<ProjectFormValues, "title" | "artist" | "client" | "project_type" | "submission_status" | "portfolio_note">)[] = [
+  const generalFields: (keyof Pick<ProjectFormValues, "title" | "artist" | "client" | "project_type" | "portfolio_note">)[] = [
     "title",
     "artist",
     "client",
     "project_type",
-    "submission_status",
     "portfolio_note"
   ];
 
@@ -300,6 +299,10 @@ function buildProjectHistoryEntries(existing: Project, next: ProjectFormValues, 
     push("project_updated", "is_portfolio", String(existing.is_portfolio), String(next.is_portfolio));
   }
 
+  if (existing.is_accepted !== next.is_accepted) {
+    push("project_updated", "is_accepted", String(existing.is_accepted), String(next.is_accepted));
+  }
+
   if (existing.submission_done !== next.submission_done) {
     push(
       next.submission_done ? "submission_marked" : "submission_unmarked",
@@ -325,7 +328,7 @@ function sanitizeInlinePatch(patch: InlineProjectUpdate): InlineProjectUpdate {
   if (patch.chorus_status) next.chorus_status = patch.chorus_status;
   if (patch.verse_status) next.verse_status = patch.verse_status;
   if (typeof patch.submission_done === "boolean") next.submission_done = patch.submission_done;
-  if (patch.submission_status) next.submission_status = patch.submission_status;
+  if (typeof patch.is_accepted === "boolean") next.is_accepted = patch.is_accepted;
   if (typeof patch.is_portfolio === "boolean") next.is_portfolio = patch.is_portfolio;
   if (patch.portfolio_note !== undefined) next.portfolio_note = patch.portfolio_note;
   if (patch.overall_status) next.overall_status = patch.overall_status;
@@ -343,7 +346,7 @@ function projectToFormValues(project: Project): ProjectFormValues {
     due_at: project.due_at,
     due_time: project.due_time,
     submission_done: project.submission_done,
-    submission_status: project.submission_status,
+    is_accepted: project.is_accepted,
     is_portfolio: project.is_portfolio,
     accepted_at: project.accepted_at,
     portfolio_note: project.portfolio_note,
@@ -417,26 +420,25 @@ function normalizeTimeString(value: string | null | undefined) {
 }
 
 function normalizeSubmissionFields(
-  values: Pick<ProjectFormValues, "submission_done" | "submission_status" | "is_portfolio" | "portfolio_note">,
+  values: Pick<ProjectFormValues, "submission_done" | "is_accepted" | "is_portfolio" | "portfolio_note">,
   existing?: Pick<Project, "submitted_at" | "accepted_at">
 ) {
   if (!values.submission_done) {
     return {
       submitted_at: null,
-      submission_status: "pending" as const,
+      is_accepted: false,
       is_portfolio: false,
       accepted_at: null,
       portfolio_note: null
     };
   }
 
-  const submissionStatus = values.submission_status ?? "pending";
-  const isAccepted = submissionStatus === "accepted";
+  const isAccepted = Boolean(values.is_accepted);
   const isPortfolio = isAccepted ? Boolean(values.is_portfolio) : false;
 
   return {
     submitted_at: existing?.submitted_at ?? getCurrentUtcTimestamp(),
-    submission_status: submissionStatus,
+    is_accepted: isAccepted,
     is_portfolio: isPortfolio,
     accepted_at: isAccepted ? existing?.accepted_at ?? getCurrentUtcTimestamp() : null,
     portfolio_note: isPortfolio ? normalizeNullableText(values.portfolio_note) : null

@@ -45,15 +45,17 @@ export default async function ProjectsPage({
           : activeProjects;
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3">
+    <div className="space-y-5">
+      <div className="space-y-4">
         <div className="space-y-1">
           <h1 className="text-[2rem] font-black tracking-[-0.04em] text-ink">Projects</h1>
-          <p className="text-sm text-ink-soft">Active work only. Keep deadlines moving and archive finished songs separately.</p>
+          <p className="text-sm text-ink-soft">Manage active songs, keep deadlines visible, and move finished work to Archive.</p>
         </div>
-        <Button asChild className="min-h-12 w-full text-base font-bold">
-          <Link href={"/projects/new" as Route}>New Project</Link>
-        </Button>
+        <div className="pt-1">
+          <Button asChild size="sm" className="min-h-10 px-4 text-sm font-bold">
+            <Link href={"/projects/new" as Route}>New Project</Link>
+          </Button>
+        </div>
       </div>
 
       <ProjectsQuickFilters />

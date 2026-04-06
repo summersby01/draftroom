@@ -33,7 +33,7 @@ export const projectSchema = z
     due_at: z.preprocess(normalizeDateInput, z.string({ required_error: "Due date is required" }).min(1, "Due date is required")),
     due_time: z.preprocess(normalizeTimeInput, z.string().regex(/^\d{2}:\d{2}$/, "Invalid time").nullable().optional()),
     submission_done: z.boolean().default(false),
-    submission_status: z.enum(["pending", "accepted", "rejected"]).default("pending"),
+    is_accepted: z.boolean().default(false),
     is_portfolio: z.boolean().default(false),
     accepted_at: optionalTrimmed,
     portfolio_note: optionalTrimmed,

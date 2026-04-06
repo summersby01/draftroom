@@ -1,13 +1,14 @@
-do $$ begin
-  create type public.submission_status as enum ('pending', 'accepted', 'rejected');
-exception
-  when duplicate_object then null;
-end $$;
-
 alter table public.projects
-add column if not exists submission_status public.submission_status not null default 'pending';
+add column if not exists is_accepted boolean not null default false;
 
 update public.projects
-set submission_status = 'pending'
-where submission_status is null;
+set is_accepted = case
+  when coalesce(submission_status::text, '') = 'accepted' then true
+  else false
+end
+where true;
 
+alter table public.projects
+drop column if exists submission_status;
+
+drop type if exists public.submission_status;

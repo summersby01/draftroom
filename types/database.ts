@@ -2,7 +2,6 @@ import type {
   OverallStatus,
   ProjectHistoryActionType,
   ProjectType,
-  SubmissionStatus,
   StageStatus
 } from "@/types/project";
 
@@ -23,7 +22,7 @@ export interface Database {
           due_at: string;
           due_time: string | null;
           submitted_at: string | null;
-          submission_status: SubmissionStatus;
+          is_accepted: boolean;
           is_portfolio: boolean;
           accepted_at: string | null;
           portfolio_note: string | null;
@@ -48,7 +47,7 @@ export interface Database {
           due_at: string;
           due_time?: string | null;
           submitted_at?: string | null;
-          submission_status?: SubmissionStatus;
+          is_accepted?: boolean;
           is_portfolio?: boolean;
           accepted_at?: string | null;
           portfolio_note?: string | null;
@@ -73,7 +72,7 @@ export interface Database {
           due_at?: string;
           due_time?: string | null;
           submitted_at?: string | null;
-          submission_status?: SubmissionStatus;
+          is_accepted?: boolean;
           is_portfolio?: boolean;
           accepted_at?: string | null;
           portfolio_note?: string | null;
@@ -128,7 +127,6 @@ export interface Database {
     Enums: {
       overall_status: OverallStatus;
       project_type: ProjectType;
-      submission_status: SubmissionStatus;
       project_history_action_type: ProjectHistoryActionType;
       stage_status: StageStatus;
     };

@@ -34,7 +34,7 @@ const DEFAULT_VALUES: ProjectFormValues = {
   due_at: new Date().toISOString().slice(0, 10),
   due_time: undefined,
   submission_done: false,
-  submission_status: "pending",
+  is_accepted: false,
   is_portfolio: false,
   accepted_at: null,
   portfolio_note: "",
@@ -61,7 +61,7 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
           due_at: project.due_at,
           due_time: project.due_time ?? undefined,
           submission_done: project.submission_done,
-          submission_status: project.submission_status,
+          is_accepted: project.is_accepted,
           is_portfolio: project.is_portfolio,
           accepted_at: project.accepted_at,
           portfolio_note: project.portfolio_note ?? "",
@@ -103,6 +103,16 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
       // Ignore missing or malformed local preference state.
     }
   }, [form, project]);
+
+  useEffect(() => {
+    if (values.is_accepted) return;
+    if (form.getValues("is_portfolio")) {
+      form.setValue("is_portfolio", false, { shouldDirty: true });
+    }
+    if (form.getValues("portfolio_note")) {
+      form.setValue("portfolio_note", "", { shouldDirty: true });
+    }
+  }, [form, values.is_accepted]);
 
   const onSubmit = (payload: ProjectFormValues) => {
     startTransition(async () => {
@@ -163,16 +173,16 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
           </Field>
           {project || detailMode ? (
             <>
-              <Field label="Submission result">
-                <Select
-                  options={[
-                    { value: "pending", label: "Pending" },
-                    { value: "accepted", label: "Accepted" },
-                    { value: "rejected", label: "Not selected" }
-                  ]}
-                  {...form.register("submission_status")}
-                  disabled={!values.submission_done}
-                />
+              <Field label="Accepted">
+                <label className="flex min-h-12 items-center gap-3 rounded-2xl bg-white px-4 text-sm font-medium text-ink">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-brand-600"
+                    {...form.register("is_accepted")}
+                    disabled={!values.submission_done}
+                  />
+                  Mark as accepted
+                </label>
                 {!values.submission_done ? (
                   <p className="text-xs text-ink-soft">Available after the project has been submitted.</p>
                 ) : null}
@@ -184,16 +194,16 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
                     type="checkbox"
                     className="h-4 w-4 accent-brand-600"
                     {...form.register("is_portfolio")}
-                    disabled={!values.submission_done || values.submission_status !== "accepted"}
+                    disabled={!values.submission_done || !values.is_accepted}
                   />
                   Add to portfolio
                 </label>
-                {values.submission_status !== "accepted" ? (
+                {!values.is_accepted ? (
                   <p className="text-xs text-ink-soft">Only accepted projects can be added to Portfolio.</p>
                 ) : null}
               </Field>
 
-              {values.submission_done && values.submission_status === "accepted" && values.is_portfolio ? (
+              {values.submission_done && values.is_accepted && values.is_portfolio ? (
                 <Field label="Portfolio note">
                   <Textarea
                     {...form.register("portfolio_note")}

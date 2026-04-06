@@ -6,8 +6,8 @@ import { Check } from "lucide-react";
 import { SummaryCard } from "@/components/dashboard/summary-card";
 import { PageHeader } from "@/components/layout/page-header";
 import { ArchiveProjectList } from "@/components/archive/archive-project-list";
+import { ArchiveSearchFilters } from "@/components/archive/archive-search-filters";
 import { PortfolioProjectList } from "@/components/archive/portfolio-project-list";
-import { ProjectFilters } from "@/components/projects/project-filters";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getArchiveActivityData, getArchiveData, getPortfolioData } from "@/lib/data/projects";
 import { formatDate } from "@/lib/project-status";
@@ -75,7 +75,7 @@ export default async function ArchivePage({
               <SummaryCard label="Accepted" value={stats.acceptedCount} hint={`${stats.acceptanceRate}% acceptance rate`} tone="bg-white border-l-[6px] border-l-success" />
             </div>
           </section>
-          <ProjectFilters archive />
+          <ArchiveSearchFilters />
           <ArchiveProjectList groupedProjects={grouped} />
         </>
       ) : tab === "activity" ? (

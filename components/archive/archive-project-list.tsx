@@ -118,14 +118,16 @@ function ArchiveProjectCard({
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const handleAccept = () => {
+  const nextAcceptedState = !project.is_accepted;
+
+  const handleAcceptedChange = () => {
     startTransition(async () => {
       try {
-        const updated = await updateProjectInline(project.id, { is_accepted: true });
+        const updated = await updateProjectInline(project.id, { is_accepted: nextAcceptedState });
         onAccepted(updated);
         setOpen(false);
         router.refresh();
-        toast.success("Marked as accepted");
+        toast.success(nextAcceptedState ? "Marked as accepted" : "Accepted result removed");
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Could not update accepted state");
       }
@@ -153,14 +155,13 @@ function ArchiveProjectCard({
         <div className="mt-3 flex flex-wrap gap-2 text-sm">
           <div className="rounded-full bg-white px-3 py-1.5 text-ink-soft">Submitted {formatSubmittedDate(project.submitted_at)}</div>
           <div className="rounded-full bg-white px-3 py-1.5 text-ink-soft">{project.project_type}</div>
-          {project.is_accepted ? (
-            <div className="inline-flex items-center gap-1 rounded-full bg-success/15 px-3 py-1.5 font-semibold text-success">
-              <Check className="h-3.5 w-3.5" />
-              Accepted
-            </div>
-          ) : (
-            <AcceptProjectButton open={open} setOpen={setOpen} isPending={isPending} onConfirm={handleAccept} />
-          )}
+          <AcceptProjectButton
+            accepted={project.is_accepted}
+            open={open}
+            setOpen={setOpen}
+            isPending={isPending}
+            onConfirm={handleAcceptedChange}
+          />
           {project.portfolio_note ? (
             <div className="w-full rounded-[18px] bg-white px-3 py-2 text-sm text-ink-soft">
               {project.portfolio_note}
@@ -177,11 +178,13 @@ function ArchiveProjectCard({
 }
 
 function AcceptProjectButton({
+  accepted,
   open,
   setOpen,
   isPending,
   onConfirm
 }: {
+  accepted: boolean;
   open: boolean;
   setOpen: (open: boolean) => void;
   isPending: boolean;
@@ -193,22 +196,35 @@ function AcceptProjectButton({
         <button
           type="button"
           onClick={(event) => event.preventDefault()}
-          className="min-h-10 rounded-full bg-action px-3.5 py-2 text-sm font-bold text-white transition duration-150 hover:scale-[1.01] hover:bg-brand-600"
+          className={
+            accepted
+              ? "inline-flex min-h-10 items-center gap-1 rounded-full bg-success/15 px-3 py-2 text-sm font-semibold text-success transition duration-150 hover:scale-[1.01]"
+              : "min-h-10 rounded-full bg-action px-3.5 py-2 text-sm font-bold text-white transition duration-150 hover:scale-[1.01] hover:bg-brand-600"
+          }
         >
-          Mark as accepted
+          {accepted ? (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              Accepted
+            </>
+          ) : (
+            "Mark as accepted"
+          )}
         </button>
       </AlertDialogTrigger>
       <AlertDialogContent className="rounded-[28px]">
         <AlertDialogHeader>
-          <AlertDialogTitle>Mark this project as accepted?</AlertDialogTitle>
+          <AlertDialogTitle>{accepted ? "Remove accepted result?" : "Mark this project as accepted?"}</AlertDialogTitle>
           <AlertDialogDescription>
-            This will save the accepted result and make the project eligible for Portfolio.
+            {accepted
+              ? "This will clear the accepted marker. Portfolio selection will also be removed if it was enabled."
+              : "This will save the accepted result and make the project eligible for Portfolio."}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col-reverse sm:flex-row">
           <AlertDialogCancelButton disabled={isPending}>Cancel</AlertDialogCancelButton>
           <AlertDialogActionButton disabled={isPending} onClick={onConfirm}>
-            {isPending ? "Saving..." : "Mark accepted"}
+            {isPending ? "Saving..." : accepted ? "Remove accepted" : "Mark accepted"}
           </AlertDialogActionButton>
         </AlertDialogFooter>
       </AlertDialogContent>

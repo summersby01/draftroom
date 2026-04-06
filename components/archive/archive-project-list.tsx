@@ -109,6 +109,32 @@ function ArchiveProjectCard({
     setLocalProject(project);
   }, [project]);
 
+  const syncAcceptedState = (nextAccepted: boolean, fallbackProject: Project) => {
+    const nextAcceptedAt = nextAccepted ? new Date().toISOString() : null;
+    const optimisticProject: Project = {
+      ...localProject,
+      is_accepted: nextAccepted,
+      accepted_at: nextAcceptedAt,
+      is_portfolio: nextAccepted ? localProject.is_portfolio : false,
+      portfolio_note: nextAccepted ? localProject.portfolio_note : null
+    };
+
+    setLocalProject(optimisticProject);
+    onAccepted(optimisticProject);
+
+    startTransition(async () => {
+      try {
+        const updated = await updateProjectInline(localProject.id, { is_accepted: nextAccepted });
+        setLocalProject(updated);
+        onAccepted(updated);
+      } catch (error) {
+        setLocalProject(fallbackProject);
+        onAccepted(fallbackProject);
+        toast.error(error instanceof Error ? error.message : "Could not update accepted state");
+      }
+    });
+  };
+
   const handleAcceptedChange = () => {
     const optimisticAcceptedAt = new Date().toISOString();
     const optimisticProject: Project = {
@@ -125,7 +151,12 @@ function ArchiveProjectCard({
         const updated = await updateProjectInline(localProject.id, { is_accepted: true });
         setLocalProject(updated);
         onAccepted(updated);
-        toast.success("Marked as accepted");
+        toast.success("Marked as accepted", {
+          action: {
+            label: "Undo",
+            onClick: () => syncAcceptedState(false, updated)
+          }
+        });
       } catch (error) {
         setLocalProject(project);
         onAccepted(project);
@@ -199,7 +230,7 @@ function AcceptProjectButton({
       type="button"
       onClick={onClick}
       disabled={isPending}
-      className="inline-flex min-h-9 items-center gap-1 rounded-full bg-action/12 px-4 py-2 text-xs font-semibold text-action transition duration-150 hover:bg-action/18 disabled:opacity-60"
+      className="inline-flex min-h-9 items-center gap-1 rounded-full bg-action/12 px-4 py-2 text-sm font-semibold text-action transition duration-150 hover:bg-action/18 disabled:opacity-60"
     >
       <span>Accept</span>
       <Check className="h-3.5 w-3.5" />

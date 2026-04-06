@@ -3,22 +3,10 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { Check, Star } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { updateProjectInline } from "@/app/actions/projects";
-import {
-  AlertDialog,
-  AlertDialogActionButton,
-  AlertDialogCancelButton,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { Project } from "@/types/project";
 
@@ -114,115 +102,108 @@ function ArchiveProjectCard({
   project: Project;
   onAccepted: (project: Project) => void;
 }) {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [localProject, setLocalProject] = useState(project);
   const [isPending, startTransition] = useTransition();
 
+  useEffect(() => {
+    setLocalProject(project);
+  }, [project]);
+
   const handleAcceptedChange = () => {
+    const optimisticAcceptedAt = new Date().toISOString();
+    const optimisticProject: Project = {
+      ...localProject,
+      is_accepted: true,
+      accepted_at: optimisticAcceptedAt
+    };
+
+    setLocalProject(optimisticProject);
+    onAccepted(optimisticProject);
+
     startTransition(async () => {
       try {
-        const updated = await updateProjectInline(project.id, { is_accepted: true });
+        const updated = await updateProjectInline(localProject.id, { is_accepted: true });
+        setLocalProject(updated);
         onAccepted(updated);
-        setOpen(false);
-        router.refresh();
         toast.success("Marked as accepted");
       } catch (error) {
+        setLocalProject(project);
+        onAccepted(project);
         toast.error(error instanceof Error ? error.message : "Could not update accepted state");
       }
     });
   };
 
   return (
-    <Link href={`/projects/${project.id}` as Route}>
-      <div className={getArchiveCardClassName(project)}>
+    <div className={getArchiveCardClassName(localProject)}>
+      <Link href={`/projects/${localProject.id}` as Route} className="block">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="truncate text-base font-bold tracking-tight text-ink">{project.title}</p>
+            <p className="truncate text-base font-bold tracking-tight text-ink">{localProject.title}</p>
             <p className="mt-1 text-sm text-ink-soft">
-              {[project.artist, project.client].filter(Boolean).join(" • ") || "Independent project"}
+              {[localProject.artist, localProject.client].filter(Boolean).join(" • ") || "Independent project"}
             </p>
           </div>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2 text-sm">
-          <div className={getMetaPillClassName(project)}>Submitted {formatSubmittedDate(project.submitted_at)}</div>
-          <div className={getMetaPillClassName(project)}>{project.project_type}</div>
-          {project.is_accepted ? (
+          <div className={getMetaPillClassName(localProject)}>Submitted {formatSubmittedDate(localProject.submitted_at)}</div>
+          <div className={getMetaPillClassName(localProject)}>{localProject.project_type}</div>
+          {localProject.is_accepted ? (
             <>
-              <div className={getAcceptedBadgeClassName(project)}>
+              <div className={getAcceptedBadgeClassName(localProject)}>
                 <Check className="h-3.5 w-3.5" />
                 Accepted
               </div>
-              <div className={getMetaPillClassName(project)}>
-                Accepted {formatAcceptedDate(project.accepted_at)}
+              <div className={getMetaPillClassName(localProject)}>
+                Accepted {formatAcceptedDate(localProject.accepted_at)}
               </div>
             </>
           ) : null}
-          {project.is_portfolio ? (
+          {localProject.is_portfolio ? (
             <div className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1.5 font-semibold text-[#16a34a]">
               <Star className="h-3.5 w-3.5 fill-[#16a34a]" />
               Portfolio
             </div>
           ) : null}
-          {project.portfolio_note ? (
-            <div className={getNoteClassName(project)}>
-              {project.portfolio_note}
+          {localProject.portfolio_note ? (
+            <div className={getNoteClassName(localProject)}>
+              {localProject.portfolio_note}
             </div>
-          ) : project.notes ? (
-            <div className={getNoteClassName(project)}>
-              {project.notes}
+          ) : localProject.notes ? (
+            <div className={getNoteClassName(localProject)}>
+              {localProject.notes}
             </div>
           ) : null}
         </div>
+      </Link>
 
-        {!project.is_accepted ? (
-          <div className="mt-3 flex justify-end">
-            <AcceptProjectButton open={open} setOpen={setOpen} isPending={isPending} onConfirm={handleAcceptedChange} />
-          </div>
-        ) : null}
-      </div>
-    </Link>
+      {!localProject.is_accepted ? (
+        <div className="mt-3 flex justify-end">
+          <AcceptProjectButton isPending={isPending} onClick={handleAcceptedChange} />
+        </div>
+      ) : null}
+    </div>
   );
 }
 
 function AcceptProjectButton({
-  open,
-  setOpen,
   isPending,
-  onConfirm
+  onClick
 }: {
-  open: boolean;
-  setOpen: (open: boolean) => void;
   isPending: boolean;
-  onConfirm: () => void;
+  onClick: () => void;
 }) {
   return (
-    <AlertDialog open={open} onOpenChange={isPending ? undefined : setOpen}>
-      <AlertDialogTrigger asChild>
-        <button
-          type="button"
-          onClick={(event) => event.preventDefault()}
-          className="inline-flex min-h-8 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold text-ink-soft transition duration-150 hover:bg-white hover:text-ink"
-        >
-          <Check className="h-3.5 w-3.5" />
-          Mark accepted
-        </button>
-      </AlertDialogTrigger>
-      <AlertDialogContent className="rounded-[28px]">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Mark this project as accepted?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will save the accepted result and make the project eligible for Portfolio.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter className="flex-col-reverse sm:flex-row">
-          <AlertDialogCancelButton disabled={isPending}>Cancel</AlertDialogCancelButton>
-          <AlertDialogActionButton disabled={isPending} onClick={onConfirm}>
-            {isPending ? "Saving..." : "Mark accepted"}
-          </AlertDialogActionButton>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={isPending}
+      className="inline-flex min-h-9 items-center gap-1 rounded-full bg-action/12 px-4 py-2 text-xs font-semibold text-action transition duration-150 hover:bg-action/18 disabled:opacity-60"
+    >
+      <span>Accept</span>
+      <Check className="h-3.5 w-3.5" />
+    </button>
   );
 }
 

@@ -34,7 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body className="font-sans antialiased">
         <PwaRegister />
         {children}
-        <Toaster richColors position="top-right" />
+        <Toaster richColors position="bottom-center" duration={4500} />
       </body>
     </html>
   );

@@ -109,14 +109,14 @@ function ArchiveProjectCard({
     setLocalProject(project);
   }, [project]);
 
-  const syncAcceptedState = (nextAccepted: boolean, fallbackProject: Project) => {
+  const syncAcceptedState = (nextAccepted: boolean, sourceProject: Project, fallbackProject: Project) => {
     const nextAcceptedAt = nextAccepted ? new Date().toISOString() : null;
     const optimisticProject: Project = {
-      ...localProject,
+      ...sourceProject,
       is_accepted: nextAccepted,
       accepted_at: nextAcceptedAt,
-      is_portfolio: nextAccepted ? localProject.is_portfolio : false,
-      portfolio_note: nextAccepted ? localProject.portfolio_note : null
+      is_portfolio: nextAccepted ? sourceProject.is_portfolio : false,
+      portfolio_note: nextAccepted ? sourceProject.portfolio_note : null
     };
 
     setLocalProject(optimisticProject);
@@ -124,7 +124,7 @@ function ArchiveProjectCard({
 
     startTransition(async () => {
       try {
-        const updated = await updateProjectInline(localProject.id, { is_accepted: nextAccepted });
+        const updated = await updateProjectInline(sourceProject.id, { is_accepted: nextAccepted });
         setLocalProject(updated);
         onAccepted(updated);
       } catch (error) {
@@ -137,8 +137,9 @@ function ArchiveProjectCard({
 
   const handleAcceptedChange = () => {
     const optimisticAcceptedAt = new Date().toISOString();
+    const previousProject = localProject;
     const optimisticProject: Project = {
-      ...localProject,
+      ...previousProject,
       is_accepted: true,
       accepted_at: optimisticAcceptedAt
     };
@@ -148,18 +149,19 @@ function ArchiveProjectCard({
 
     startTransition(async () => {
       try {
-        const updated = await updateProjectInline(localProject.id, { is_accepted: true });
+        const updated = await updateProjectInline(previousProject.id, { is_accepted: true });
         setLocalProject(updated);
         onAccepted(updated);
         toast.success("Marked as accepted", {
+          duration: 5000,
           action: {
             label: "Undo",
-            onClick: () => syncAcceptedState(false, updated)
+            onClick: () => syncAcceptedState(false, updated, previousProject)
           }
         });
       } catch (error) {
-        setLocalProject(project);
-        onAccepted(project);
+        setLocalProject(previousProject);
+        onAccepted(previousProject);
         toast.error(error instanceof Error ? error.message : "Could not update accepted state");
       }
     });

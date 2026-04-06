@@ -33,7 +33,7 @@ export function ProjectsQuickFilters() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <div className="-mx-4 overflow-x-auto px-4">
         <div className="flex gap-2 pb-1">
           {CHIP_OPTIONS.map((chip) => {
@@ -53,8 +53,8 @@ export function ProjectsQuickFilters() {
                 href={href}
                 className={
                   active
-                    ? "rounded-full bg-deep-blue px-4 py-2 text-sm font-bold text-white"
-                    : "rounded-full border border-line bg-white px-4 py-2 text-sm font-bold text-ink-soft"
+                    ? "rounded-full bg-deep-blue px-3.5 py-2 text-[13px] font-bold text-white"
+                    : "rounded-full border border-line bg-white px-3.5 py-2 text-[13px] font-bold text-ink-soft"
                 }
               >
                 {chip.label}

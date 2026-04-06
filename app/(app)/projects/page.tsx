@@ -3,7 +3,7 @@ import type { Route } from "next";
 import { CheckCircle2 } from "lucide-react";
 import { differenceInCalendarDays } from "date-fns";
 
-import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { ProjectCard } from "@/components/projects/project-card";
 import { ProjectsQuickFilters } from "@/components/projects/projects-quick-filters";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +29,7 @@ export default async function ProjectsPage({
 }) {
   const params = await searchParams;
   const view = typeof params.view === "string" ? params.view : "all";
+
   const projects = await getProjects({
     query: typeof params.query === "string" ? params.query : undefined,
     status:
@@ -59,58 +60,50 @@ export default async function ProjectsPage({
     return days >= 0 && days <= 3;
   });
 
-  const showingAllActive = view === "active" || view === "due_soon";
-  const showingAllSubmitted = view === "submitted";
-  const activeFeed = view === "due_soon" ? dueSoonProjects : activeProjects;
-  const visibleActive = showingAllActive ? activeFeed : activeFeed.slice(0, 8);
-  const visibleSubmitted = showingAllSubmitted ? submittedProjects : submittedProjects.slice(0, 5);
+  const visibleProjects =
+    view === "active"
+      ? activeProjects
+      : view === "due_soon"
+        ? dueSoonProjects
+        : view === "submitted"
+          ? submittedProjects
+          : [...activeProjects.slice(0, 8), ...submittedProjects.slice(0, 5)];
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="Projects"
-        description="Focus on what is still moving, then skim the latest delivered work without crowding the feed."
-        ctaLabel="New Project"
-        ctaHref="/projects/new"
-      />
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <h1 className="text-[2rem] font-black tracking-[-0.04em] text-ink">Projects</h1>
+          <p className="text-sm text-ink-soft">Filter what matters, then move straight through the list.</p>
+        </div>
+        <Button asChild className="min-h-12 w-full text-base font-bold">
+          <Link href={"/projects/new" as Route}>New Project</Link>
+        </Button>
+      </div>
 
       <ProjectsQuickFilters />
 
-      <ProjectsSectionHeader
-        title={view === "due_soon" ? "Due soon" : "Active"}
-        count={activeFeed.length}
-        actionLabel={showingAllActive ? "Show less" : "View all"}
-        actionHref={showingAllActive ? "/projects" : "/projects?view=active"}
-      />
-      {visibleActive.length ? (
+      {visibleProjects.length ? (
         <div className="space-y-3">
-          {visibleActive.map((project) => (
-            <ProjectCard key={project.id} project={project} activeProjects={activeProjects} />
-          ))}
+          {visibleProjects.map((project) =>
+            project.overall_status === "submitted" ? (
+              <SubmittedProjectCard key={project.id} project={project} />
+            ) : (
+              <ProjectCard key={project.id} project={project} activeProjects={activeProjects} />
+            )
+          )}
         </div>
       ) : (
-        <EmptyState message={view === "due_soon" ? "No projects are due soon." : "No active projects match the current filters."} />
+        <EmptyState
+          message={
+            view === "submitted"
+              ? "No submitted projects yet."
+              : view === "due_soon"
+                ? "No projects are due soon."
+                : "No projects match the current filters."
+          }
+        />
       )}
-
-      {view !== "due_soon" ? (
-        <>
-          <ProjectsSectionHeader
-            title="Submitted (Recent)"
-            count={submittedProjects.length}
-            actionLabel={showingAllSubmitted ? "Show less" : "View all"}
-            actionHref={showingAllSubmitted ? "/projects" : "/projects?view=submitted"}
-          />
-          {visibleSubmitted.length ? (
-            <div className="space-y-3">
-              {visibleSubmitted.map((project) => (
-                <SubmittedProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState message="No submitted projects yet." />
-          )}
-        </>
-      ) : null}
     </div>
   );
 }
@@ -126,30 +119,6 @@ function sortActiveProjects(projects: Project[]) {
 
     return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
   });
-}
-
-function ProjectsSectionHeader({
-  title,
-  count,
-  actionLabel,
-  actionHref
-}: {
-  title: string;
-  count: number;
-  actionLabel: string;
-  actionHref: Route;
-}) {
-  return (
-    <div className="flex items-end justify-between gap-3">
-      <div>
-        <h2 className="text-[1.35rem] font-black tracking-[-0.04em] text-ink">{title}</h2>
-        <p className="text-sm text-ink-soft">{count} project{count === 1 ? "" : "s"}</p>
-      </div>
-      <Link href={actionHref} className="text-sm font-bold text-blue-muted">
-        {actionLabel}
-      </Link>
-    </div>
-  );
 }
 
 function SubmittedProjectCard({ project }: { project: Project }) {
@@ -191,3 +160,4 @@ function EmptyState({ message }: { message: string }) {
     </Card>
   );
 }
+

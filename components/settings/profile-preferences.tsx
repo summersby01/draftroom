@@ -57,7 +57,7 @@ export function ProfilePreferences() {
   }
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-line bg-white">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-[24px] border border-line bg-white">
       <PreferenceRow
         label="Default due time"
         value={preferences.defaultDueTime || "Not set"}
@@ -111,19 +111,18 @@ function PreferenceRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-line last:border-b-0">
-      <div className="flex items-center justify-between gap-3 px-4 py-4">
+    <div className="min-w-0 max-w-full overflow-hidden border-b border-line last:border-b-0">
+      <div className="flex min-w-0 max-w-full items-center justify-between gap-3 overflow-hidden px-4 py-4">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-ink">{label}</p>
           {helper ? <p className="mt-1 text-xs text-ink-soft">{helper}</p> : null}
         </div>
-        <div className="flex items-center gap-2 text-sm text-ink-soft">
+        <div className="flex min-w-0 shrink items-center gap-2 text-sm text-ink-soft">
           <span className="truncate">{value}</span>
           <ChevronRight className="h-4 w-4 text-ink-soft/60" />
         </div>
       </div>
-      <div className="px-4 pb-4">{children}</div>
+      <div className="min-w-0 max-w-full overflow-hidden px-4 pb-4">{children}</div>
     </div>
   );
 }
-

@@ -115,7 +115,7 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
   };
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className={detailMode ? "space-y-4 pb-28" : "space-y-4 pb-6"}>
+    <form onSubmit={form.handleSubmit(onSubmit)} className={detailMode ? "min-w-0 space-y-4 overflow-x-hidden pb-28" : "min-w-0 space-y-4 overflow-x-hidden pb-6"}>
       <input type="hidden" {...form.register("overall_status")} />
       {project ? <input type="hidden" {...form.register("received_at")} /> : null}
       <Card className="rounded-[28px] bg-note-blue">
@@ -123,7 +123,7 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
           <h2 className="text-xl font-bold tracking-tight text-ink">Project details</h2>
           <p className="text-sm text-ink/70">Track writing timeline, commission info, and lyric notes in one place.</p>
         </CardHeader>
-        <CardContent className="grid gap-4">
+        <CardContent className="grid min-w-0 gap-4 overflow-hidden">
           <Field label="Title" error={form.formState.errors.title?.message}>
             <Input {...form.register("title")} placeholder="Midnight letter" />
           </Field>
@@ -136,7 +136,7 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
           <Field label="Client">
             <Input {...form.register("client")} placeholder="Blue House Publishing" />
           </Field>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-3 overflow-hidden sm:grid-cols-2">
             <Field label="Due date" error={form.formState.errors.due_at?.message}>
               <Input type="date" {...form.register("due_at")} />
             </Field>
@@ -242,7 +242,7 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="min-w-0 space-y-2 text-sm">
+    <label className="min-w-0 max-w-full space-y-2 text-sm">
       <span className="font-semibold text-foreground">{label}</span>
       {children}
       {error ? <span className="text-xs text-danger">{error}</span> : null}

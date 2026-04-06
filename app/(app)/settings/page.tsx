@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
-import { CalendarClock, Flame, LogOut, Mail, MoonStar, Sparkles, TimerReset } from "lucide-react";
+import { CalendarClock, Flame, Mail, MoonStar, Sparkles, TimerReset } from "lucide-react";
 
-import { signOut } from "@/app/actions/auth";
+import { LogoutConfirmButton } from "@/components/settings/logout-confirm-button";
 import { ProfilePreferences } from "@/components/settings/profile-preferences";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getProfileData } from "@/lib/data/profile";
@@ -105,12 +105,7 @@ export default async function SettingsPage() {
             <AccountRow icon={Flame} label="Sign-in method" value={summary.signInMethod} />
           </div>
 
-          <form action={signOut}>
-            <button className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-action px-4 py-3 text-sm font-semibold text-white transition duration-150 hover:bg-brand-600 hover:scale-[1.01] active:scale-[0.98]">
-              <LogOut className="h-4 w-4" />
-              <span>Log out</span>
-            </button>
-          </form>
+          <LogoutConfirmButton />
         </CardContent>
       </Card>
     </div>
@@ -176,4 +171,3 @@ function AccountRow({
     </div>
   );
 }
-

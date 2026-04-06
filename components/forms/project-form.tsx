@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -17,6 +17,10 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PROJECT_TYPE_OPTIONS } from "@/lib/constants";
+import {
+  DRAFT_ROOM_PREFERENCES_KEY,
+  mergeDraftRoomPreferences
+} from "@/lib/profile-preferences";
 import { getProjectProgressState } from "@/lib/project-status";
 import { projectSchema, type ProjectFormValues } from "@/lib/validators/project";
 import type { Project } from "@/types/project";
@@ -66,6 +70,31 @@ export function ProjectForm({ project, detailMode = false }: { project?: Project
   const progressState = getProjectProgressState(values);
   const progress = progressState.progressPercent;
   const canSubmit = progressState.canSubmit;
+
+  useEffect(() => {
+    if (project) return;
+
+    try {
+      const stored = window.localStorage.getItem(DRAFT_ROOM_PREFERENCES_KEY);
+      if (!stored) return;
+      const preferences = mergeDraftRoomPreferences(JSON.parse(stored) as Record<string, string>);
+
+      const currentDueTime = form.getValues("due_time");
+      const currentProjectType = form.getValues("project_type");
+
+      if (!currentDueTime && preferences.defaultDueTime) {
+        form.setValue("due_time", preferences.defaultDueTime, { shouldDirty: false });
+      }
+
+      if ((currentProjectType === "lyrics" || !currentProjectType) && preferences.defaultProjectType) {
+        form.setValue("project_type", preferences.defaultProjectType as ProjectFormValues["project_type"], {
+          shouldDirty: false
+        });
+      }
+    } catch {
+      // Ignore missing or malformed local preference state.
+    }
+  }, [form, project]);
 
   const onSubmit = (payload: ProjectFormValues) => {
     startTransition(async () => {
